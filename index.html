@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>LimpaCheck — ILPI</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f4f3ef;
+  --card: #ffffff;
+  --text: #1a1a18;
+  --muted: #7a7a72;
+  --border: #e2e1db;
+  --green: #2d6a4f;
+  --green-light: #e8f5ee;
+  --green-mid: #52b788;
+  --amber: #b5540a;
+  --amber-light: #fff3e0;
+  --red: #c0392b;
+  --red-light: #fdecea;
+  --blue: #1a5276;
+  --blue-light: #eaf2fb;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* SCREENS */
+.screen { display: none; min-height: 100vh; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* ===== SPLASH / SELECTOR ===== */
+#screen-home {
+  align-items: center; justify-content: center;
+  background: var(--green);
+  padding: 2rem;
+}
+.home-logo { text-align: center; margin-bottom: 3rem; }
+.home-logo h1 { font-size: 2rem; font-weight: 600; color: #fff; letter-spacing: -0.5px; }
+.home-logo p { color: rgba(255,255,255,0.7); font-size: 0.9rem; margin-top: 0.25rem; }
+.home-logo .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--green-mid); margin-right: 0.5rem; }
+.role-cards { display: flex; flex-direction: column; gap: 1rem; width: 100%; max-width: 340px; }
+.role-card {
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+  border-radius: var(--radius); padding: 1.25rem 1.5rem;
+  cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 1rem;
+}
+.role-card:hover { background: rgba(255,255,255,0.2); transform: translateY(-1px); }
+.role-icon { font-size: 1.8rem; width: 48px; text-align: center; }
+.role-info h3 { color: #fff; font-size: 1rem; font-weight: 500; }
+.role-info p { color: rgba(255,255,255,0.65); font-size: 0.8rem; margin-top: 2px; }
+
+/* ===== ADM LOGIN ===== */
+#screen-login {
+  align-items: center; justify-content: center;
+  background: var(--bg); padding: 2rem;
+}
+.login-box {
+  background: var(--card); border-radius: var(--radius); padding: 2.5rem;
+  box-shadow: var(--shadow); width: 100%; max-width: 360px;
+}
+.login-box h2 { font-size: 1.4rem; font-weight: 600; margin-bottom: 0.25rem; }
+.login-box p { color: var(--muted); font-size: 0.85rem; margin-bottom: 2rem; }
+.form-group { margin-bottom: 1.25rem; }
+.form-group label { display: block; font-size: 0.8rem; font-weight: 500; color: var(--muted); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.form-group input {
+  width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border);
+  border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem;
+  background: var(--bg); transition: border-color 0.2s;
+}
+.form-group input:focus { outline: none; border-color: var(--green); }
+.btn { width: 100%; padding: 0.85rem; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+.btn-primary { background: var(--green); color: #fff; }
+.btn-primary:hover { background: #245a41; }
+.btn-secondary { background: var(--border); color: var(--text); }
+.btn-secondary:hover { background: #d5d4ce; }
+.error-msg { color: var(--red); font-size: 0.82rem; margin-top: 0.75rem; text-align: center; display: none; }
+
+/* ===== ADM PANEL ===== */
+#screen-adm { background: var(--bg); }
+.adm-header {
+  background: var(--green); color: #fff; padding: 1rem 1.5rem;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.adm-header h2 { font-size: 1rem; font-weight: 600; }
+.adm-header-actions { display: flex; gap: 0.5rem; }
+.btn-sm {
+  padding: 0.4rem 0.85rem; border: none; border-radius: 6px;
+  font-family: 'DM Sans', sans-serif; font-size: 0.8rem; font-weight: 500;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-outline-white { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.4); }
+.btn-outline-white:hover { background: rgba(255,255,255,0.15); }
+.btn-white { background: #fff; color: var(--green); }
+.btn-white:hover { background: #f0f0f0; }
+
+.adm-tabs { display: flex; gap: 0; background: var(--card); border-bottom: 1px solid var(--border); overflow-x: auto; }
+.adm-tab { padding: 0.85rem 1.25rem; font-size: 0.85rem; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.15s; }
+.adm-tab.active { color: var(--green); border-bottom-color: var(--green); }
+
+.adm-content { padding: 1.5rem; max-width: 1100px; margin: 0 auto; }
+
+/* Stats row */
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.stat-card { background: var(--card); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow); }
+.stat-card .label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.stat-card .value { font-size: 2rem; font-weight: 600; margin-top: 0.25rem; font-family: 'DM Mono', monospace; }
+.stat-card .value.green { color: var(--green); }
+.stat-card .value.amber { color: var(--amber); }
+.stat-card .value.red { color: var(--red); }
+
+/* Filters */
+.filters-row { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center; }
+.filters-row select, .filters-row input {
+  padding: 0.5rem 0.85rem; border: 1px solid var(--border); border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: 0.85rem; background: var(--card);
+}
+
+/* Ambiente cards grid */
+.ambientes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+.ambiente-card {
+  background: var(--card); border-radius: var(--radius); padding: 1.25rem;
+  box-shadow: var(--shadow); border-left: 4px solid var(--border); transition: all 0.2s;
+}
+.ambiente-card.limpo { border-left-color: var(--green-mid); }
+.ambiente-card.pendente { border-left-color: var(--amber); }
+.ambiente-card.nao-realizado { border-left-color: var(--red); }
+.ambiente-card h4 { font-size: 0.95rem; font-weight: 600; }
+.ambiente-card .setor { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+.ambiente-card .status-badge {
+  display: inline-block; margin-top: 0.75rem; padding: 0.2rem 0.65rem;
+  border-radius: 20px; font-size: 0.75rem; font-weight: 500;
+}
+.badge-limpo { background: var(--green-light); color: var(--green); }
+.badge-pendente { background: var(--amber-light); color: var(--amber); }
+.badge-nao { background: var(--red-light); color: var(--red); }
+.badge-na { background: var(--border); color: var(--muted); }
+.ambiente-card .ultima { font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem; }
+.ambiente-card .tasks-mini { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 0.75rem; }
+.task-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* Tabela registros */
+.table-wrap { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.reg-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.reg-table th { background: var(--bg); padding: 0.75rem 1rem; text-align: left; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+.reg-table td { padding: 0.85rem 1rem; border-bottom: 1px solid var(--border); }
+.reg-table tr:last-child td { border-bottom: none; }
+.reg-table tr:hover td { background: var(--bg); }
+
+/* QR Manager */
+.qr-manager { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.panel-box { background: var(--card); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow); }
+.panel-box h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 1.25rem; }
+.qr-list { display: flex; flex-direction: column; gap: 0.75rem; max-height: 400px; overflow-y: auto; }
+.qr-item { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: var(--bg); border-radius: 8px; }
+.qr-item-info h5 { font-size: 0.9rem; font-weight: 500; }
+.qr-item-info span { font-size: 0.75rem; color: var(--muted); }
+.qr-item-actions { display: flex; gap: 0.5rem; }
+.btn-icon { padding: 0.35rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--card); font-size: 0.75rem; cursor: pointer; transition: all 0.2s; }
+.btn-icon:hover { background: var(--bg); }
+.btn-icon.danger { color: var(--red); border-color: var(--red); }
+.btn-icon.danger:hover { background: var(--red-light); }
+
+/* Add ambiente form */
+.add-form { display: flex; flex-direction: column; gap: 0.85rem; }
+.add-form input, .add-form select {
+  padding: 0.7rem 0.9rem; border: 1px solid var(--border); border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: 0.9rem; background: var(--bg);
+}
+
+/* Exportar */
+.export-section { background: var(--card); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow); max-width: 600px; }
+.export-section h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 1rem; }
+.export-row { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1rem; }
+.export-row .form-group { margin-bottom: 0; }
+.export-info { font-size: 0.82rem; color: var(--muted); margin-bottom: 1.25rem; line-height: 1.5; }
+
+/* ===== FUNCIONARIO ===== */
+#screen-func { background: var(--bg); }
+.func-header {
+  background: #fff; border-bottom: 1px solid var(--border);
+  padding: 1rem 1.25rem; display: flex; align-items: center; gap: 1rem;
+}
+.func-header h2 { font-size: 1rem; font-weight: 600; }
+.back-btn { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--muted); }
+.func-body { padding: 1.25rem; flex: 1; }
+
+/* Scanner */
+.scanner-area {
+  background: var(--card); border-radius: var(--radius); padding: 2rem;
+  text-align: center; box-shadow: var(--shadow); margin-bottom: 1.25rem;
+}
+.scanner-icon { font-size: 3.5rem; margin-bottom: 1rem; }
+.scanner-area h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; }
+.scanner-area p { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+#reader { border-radius: 10px; overflow: hidden; max-width: 300px; margin: 0 auto; }
+
+/* Checklist */
+.checklist-card { background: var(--card); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow); }
+.checklist-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+.checklist-header h3 { font-size: 1.1rem; font-weight: 600; }
+.ambiente-badge { background: var(--green-light); color: var(--green); padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: 500; }
+.checklist-items { display: flex; flex-direction: column; gap: 0; }
+.check-item {
+  display: flex; align-items: center; gap: 1rem; padding: 0.85rem 0;
+  border-bottom: 1px solid var(--border); cursor: pointer; transition: all 0.15s;
+}
+.check-item:last-child { border-bottom: none; }
+.check-box {
+  width: 26px; height: 26px; border-radius: 6px; border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  transition: all 0.2s; font-size: 0.85rem; color: #fff;
+}
+.check-item.checked .check-box { background: var(--green); border-color: var(--green); }
+.check-item label { font-size: 0.9rem; cursor: pointer; flex: 1; }
+.na-btn {
+  font-size: 0.7rem; padding: 0.15rem 0.5rem; border: 1px solid var(--border);
+  border-radius: 4px; background: none; color: var(--muted); cursor: pointer; transition: all 0.15s;
+}
+.na-btn.active { background: var(--border); color: var(--text); }
+.check-item.na .check-box { background: var(--border); border-color: var(--border); }
+.check-item.na label { color: var(--muted); text-decoration: line-through; }
+
+.obs-area { margin-top: 1.25rem; }
+.obs-area label { display: block; font-size: 0.8rem; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+.obs-area textarea {
+  width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: 0.9rem; resize: vertical; min-height: 80px;
+  background: var(--bg);
+}
+
+.func-name-area { margin: 1rem 0; }
+.func-name-area input {
+  width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border);
+  border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; background: var(--bg);
+}
+
+.submit-btn {
+  width: 100%; padding: 1rem; background: var(--green); color: #fff; border: none;
+  border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 1rem;
+  font-weight: 600; cursor: pointer; margin-top: 1.25rem; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+}
+.submit-btn:hover { background: #245a41; }
+.submit-btn:disabled { background: var(--border); cursor: not-allowed; }
+
+/* Success screen */
+.success-card {
+  text-align: center; background: var(--card); border-radius: var(--radius);
+  padding: 3rem 2rem; box-shadow: var(--shadow); margin-top: 2rem;
+}
+.success-icon { font-size: 4rem; margin-bottom: 1rem; }
+.success-card h3 { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.5rem; }
+.success-card p { color: var(--muted); margin-bottom: 2rem; }
+
+/* Modal QR */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000;
+  display: none; align-items: center; justify-content: center; padding: 1rem;
+}
+.modal-overlay.open { display: flex; }
+.modal-box { background: var(--card); border-radius: var(--radius); padding: 2rem; max-width: 340px; width: 100%; text-align: center; }
+.modal-box h3 { margin-bottom: 0.25rem; }
+.modal-box p { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+#qr-display { display: flex; justify-content: center; margin-bottom: 1.5rem; }
+.modal-btns { display: flex; gap: 0.75rem; }
+.modal-btns button { flex: 1; }
+
+/* Notification */
+.notif {
+  position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--text);
+  color: #fff; padding: 0.85rem 1.25rem; border-radius: 10px; font-size: 0.9rem;
+  z-index: 2000; transform: translateY(100px); transition: transform 0.3s; box-shadow: var(--shadow);
+}
+.notif.show { transform: translateY(0); }
+.notif.success { background: var(--green); }
+.notif.error { background: var(--red); }
+
+@media (max-width: 600px) {
+  .qr-manager { grid-template-columns: 1fr; }
+  .adm-content { padding: 1rem; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .export-row { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="screen-home" class="screen active">
+  <div class="home-logo">
+    <h1><span class="dot"></span>LimpaCheck</h1>
+    <p>Sistema de Limpeza — ILPI</p>
+  </div>
+  <div class="role-cards">
+    <div class="role-card" onclick="goTo('func')">
+      <div class="role-icon">🧹</div>
+      <div class="role-info">
+        <h3>Sou Funcionário</h3>
+        <p>Registrar limpeza de ambiente</p>
+      </div>
+    </div>
+    <div class="role-card" onclick="goTo('login')">
+      <div class="role-icon">📊</div>
+      <div class="role-info">
+        <h3>Painel Administrativo</h3>
+        <p>Gerenciar e exportar registros</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN ADM -->
+<div id="screen-login" class="screen">
+  <div class="login-box">
+    <h2>Acesso Administrativo</h2>
+    <p>Digite a senha para continuar</p>
+    <div class="form-group">
+      <label>Senha</label>
+      <input type="password" id="adm-senha" placeholder="••••••••••" onkeydown="if(event.key==='Enter') fazerLogin()">
+    </div>
+    <button class="btn btn-primary" onclick="fazerLogin()">Entrar</button>
+    <button class="btn btn-secondary" style="margin-top:0.75rem" onclick="goTo('home')">Voltar</button>
+    <p class="error-msg" id="login-error">Senha incorreta. Tente novamente.</p>
+  </div>
+</div>
+
+<!-- ADM PANEL -->
+<div id="screen-adm" class="screen">
+  <div class="adm-header">
+    <h2>📊 LimpaCheck — ADM</h2>
+    <div class="adm-header-actions">
+      <button class="btn-sm btn-outline-white" onclick="goTo('home')">← Sair</button>
+    </div>
+  </div>
+  <div class="adm-tabs">
+    <div class="adm-tab active" onclick="showTab('dashboard')">Dashboard</div>
+    <div class="adm-tab" onclick="showTab('registros')">Registros</div>
+    <div class="adm-tab" onclick="showTab('ambientes')">Ambientes / QR</div>
+    <div class="adm-tab" onclick="showTab('exportar')">Exportar Documento</div>
+  </div>
+  <div class="adm-content">
+    <!-- DASHBOARD -->
+    <div id="tab-dashboard">
+      <div class="stats-row" id="stats-row"></div>
+      <div id="filtro-data-wrap" style="display:flex;gap:0.75rem;margin-bottom:1rem;align-items:center;flex-wrap:wrap">
+        <label style="font-size:0.85rem;color:var(--muted)">Filtrar por data:</label>
+        <input type="date" id="filtro-data" onchange="renderDashboard()" style="padding:0.45rem 0.75rem;border:1px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:0.85rem">
+        <button class="btn-sm btn-secondary" onclick="document.getElementById('filtro-data').value='';renderDashboard()">Hoje</button>
+      </div>
+      <div class="ambientes-grid" id="ambientes-dashboard"></div>
+    </div>
+
+    <!-- REGISTROS -->
+    <div id="tab-registros" style="display:none">
+      <div class="filters-row">
+        <select id="filtro-ambiente" onchange="renderRegistros()"><option value="">Todos ambientes</option></select>
+        <input type="month" id="filtro-mes" onchange="renderRegistros()">
+      </div>
+      <div class="table-wrap">
+        <table class="reg-table">
+          <thead><tr>
+            <th>Data/Hora</th><th>Ambiente</th><th>Setor</th>
+            <th>Funcionário</th><th>Tarefas</th><th>Obs.</th>
+          </tr></thead>
+          <tbody id="registros-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- AMBIENTES / QR -->
+    <div id="tab-ambientes" style="display:none">
+      <div class="qr-manager">
+        <div class="panel-box">
+          <h3>Ambientes cadastrados</h3>
+          <div class="qr-list" id="qr-list"></div>
+        </div>
+        <div class="panel-box">
+          <h3>Cadastrar novo ambiente</h3>
+          <div class="add-form">
+            <input type="text" id="new-nome" placeholder="Nome do ambiente (ex: Quarto 01)">
+            <input type="text" id="new-setor" placeholder="Setor / Bloco (ex: Ala A)">
+            <input type="text" id="new-responsavel" placeholder="Responsável (opcional)">
+            <button class="btn btn-primary" onclick="cadastrarAmbiente()">+ Cadastrar Ambiente</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPORTAR -->
+    <div id="tab-exportar" style="display:none">
+      <div class="export-section">
+        <h3>Gerar Documento de Registro</h3>
+        <p class="export-info">Selecione o ambiente e o mês para gerar o documento Word (.docx) preenchido automaticamente com todos os registros, no padrão da Vigilância Sanitária.</p>
+        <div class="export-row">
+          <div class="form-group">
+            <label>Ambiente</label>
+            <select id="exp-ambiente" style="padding:0.7rem 0.9rem;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
+              <option value="">Selecione...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Mês / Ano</label>
+            <input type="month" id="exp-mes" style="padding:0.7rem 0.9rem;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
+          </div>
+          <div class="form-group">
+            <label>Empresa</label>
+            <input type="text" id="exp-empresa" placeholder="Nome da empresa" style="padding:0.7rem 0.9rem;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="exportarDocx()" style="max-width:280px">⬇ Gerar Documento .docx</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FUNCIONARIO -->
+<div id="screen-func" class="screen">
+  <div class="func-header">
+    <button class="back-btn" onclick="goTo('home')">←</button>
+    <h2>Registro de Limpeza</h2>
+  </div>
+  <div class="func-body">
+    <!-- SCANNER -->
+    <div id="area-scanner">
+      <div class="scanner-area">
+        <div class="scanner-icon">📷</div>
+        <h3>Escanear QR Code do Ambiente</h3>
+        <p>Aponte a câmera para o QR Code fixado na parede do ambiente</p>
+        <div id="reader"></div>
+        <button class="btn btn-primary" style="max-width:220px;margin:1rem auto 0" onclick="iniciarScanner()">Abrir Câmera</button>
+      </div>
+      <div style="text-align:center;margin-top:1rem">
+        <p style="font-size:0.8rem;color:var(--muted);margin-bottom:0.5rem">Ou selecione manualmente:</p>
+        <select id="select-manual" onchange="selecionarAmbienteManual(this.value)" style="padding:0.6rem 1rem;border:1px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:0.9rem;background:var(--card)">
+          <option value="">— Selecionar ambiente —</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- CHECKLIST (hidden initially) -->
+    <div id="area-checklist" style="display:none">
+      <div class="checklist-card">
+        <div class="checklist-header">
+          <div>
+            <h3 id="checklist-nome">Quarto 01</h3>
+            <div style="font-size:0.8rem;color:var(--muted);margin-top:2px" id="checklist-setor"></div>
+          </div>
+          <span class="ambiente-badge">Em limpeza</span>
+        </div>
+        <div class="checklist-items" id="checklist-items"></div>
+        <div class="obs-area">
+          <label>Observações do dia</label>
+          <textarea id="obs-texto" placeholder="Alguma ocorrência, item faltando, manutenção necessária..."></textarea>
+        </div>
+        <div class="func-name-area">
+          <label style="font-size:0.8rem;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:0.4rem">Seu nome</label>
+          <input type="text" id="func-nome" placeholder="Digite seu nome completo">
+        </div>
+        <button class="submit-btn" onclick="confirmarLimpeza()">
+          ✓ Confirmar Limpeza Realizada
+        </button>
+        <button class="btn btn-secondary" style="width:100%;margin-top:0.75rem" onclick="voltarScanner()">← Trocar ambiente</button>
+      </div>
+    </div>
+
+    <!-- SUCCESS -->
+    <div id="area-success" style="display:none">
+      <div class="success-card">
+        <div class="success-icon">✅</div>
+        <h3>Limpeza Registrada!</h3>
+        <p id="success-msg">Registro salvo com sucesso no sistema.</p>
+        <button class="btn btn-primary" style="max-width:240px;margin:0 auto" onclick="novoRegistro()">Registrar outro ambiente</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL QR -->
+<div class="modal-overlay" id="modal-qr">
+  <div class="modal-box">
+    <h3 id="qr-modal-nome">Quarto 01</h3>
+    <p id="qr-modal-setor">Setor A</p>
+    <div id="qr-display"></div>
+    <div class="modal-btns">
+      <button class="btn btn-primary btn-sm" onclick="imprimirQR()">🖨️ Imprimir</button>
+      <button class="btn btn-secondary btn-sm" onclick="fecharModal()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<!-- html2canvas para impressão de QR -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+// ============================================================
+// FIREBASE CONFIG
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyBsj65_A2DFrWCnZpEYg2-mheDcGldKtbc",
+  authDomain: "qrcode-adda6.firebaseapp.com",
+  projectId: "qrcode-adda6",
+  storageBucket: "qrcode-adda6.firebasestorage.app",
+  messagingSenderId: "996132566600",
+  appId: "1:996132566600:web:df049052395bfa46df8a7d"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const ADM_SENHA = "diuvitae182";
+
+const TAREFAS = [
+  "Varrer / Limpar o piso",
+  "Passar pano úmido no piso",
+  "Higienizar banheiro (vaso, pia, box)",
+  "Desinfectar superfícies de toque frequente",
+  "Limpar mesa / bancada",
+  "Retirar lixo e trocar saco",
+  "Higienizar lixeiras",
+  "Limpar mobiliário (camas, cadeiras, armários)",
+  "Limpar espelhos e vidros",
+  "Ventilar o ambiente",
+  "Repor materiais (sabão, papel toalha, etc.)"
+];
+
+let ambientesCache = [];
+let registrosCache = [];
+let ambienteSelecionado = null;
+let html5QrScanner = null;
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function goTo(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + screen).classList.add('active');
+  if (screen === 'func') { carregarAmbientesFunc(); voltarScanner(); }
+  if (screen === 'adm') { carregarTudo(); }
+}
+
+function fazerLogin() {
+  const s = document.getElementById('adm-senha').value;
+  if (s === ADM_SENHA) {
+    document.getElementById('login-error').style.display = 'none';
+    document.getElementById('adm-senha').value = '';
+    goTo('adm');
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+  }
+}
+
+function showTab(tab) {
+  ['dashboard','registros','ambientes','exportar'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('.adm-tab').forEach((el, i) => {
+    el.classList.toggle('active', ['dashboard','registros','ambientes','exportar'][i] === tab);
+  });
+  if (tab === 'dashboard') renderDashboard();
+  if (tab === 'registros') renderRegistros();
+  if (tab === 'ambientes') renderQRList();
+  if (tab === 'exportar') renderExportSelect();
+}
+
+// ============================================================
+// FIRESTORE
+// ============================================================
+async function carregarTudo() {
+  await carregarAmbientes();
+  renderDashboard();
+  renderQRList();
+  renderExportSelect();
+  populateFiltroAmbiente();
+  const hoje = new Date().toISOString().slice(0,7);
+  document.getElementById('filtro-mes').value = hoje;
+  document.getElementById('exp-mes').value = hoje;
+}
+
+async function carregarAmbientes() {
+  const snap = await db.collection('ambientes').orderBy('nome').get();
+  ambientesCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+async function carregarRegistros(ambienteId, mes) {
+  let q = db.collection('registros');
+  if (ambienteId) q = q.where('ambienteId', '==', ambienteId);
+  if (mes) {
+    const [ano, m] = mes.split('-');
+    const inicio = new Date(ano, m - 1, 1);
+    const fim = new Date(ano, m, 0, 23, 59, 59);
+    q = q.where('timestamp', '>=', inicio).where('timestamp', '<=', fim);
+  }
+  const snap = await q.orderBy('timestamp', 'desc').get();
+  registrosCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  return registrosCache;
+}
+
+async function cadastrarAmbiente() {
+  const nome = document.getElementById('new-nome').value.trim();
+  const setor = document.getElementById('new-setor').value.trim();
+  const responsavel = document.getElementById('new-responsavel').value.trim();
+  if (!nome) { notify('Digite o nome do ambiente', 'error'); return; }
+  const ref = await db.collection('ambientes').add({ nome, setor, responsavel, criadoEm: new Date() });
+  notify('Ambiente cadastrado!', 'success');
+  document.getElementById('new-nome').value = '';
+  document.getElementById('new-setor').value = '';
+  document.getElementById('new-responsavel').value = '';
+  await carregarAmbientes();
+  renderQRList();
+  renderExportSelect();
+  populateFiltroAmbiente();
+}
+
+async function excluirAmbiente(id) {
+  if (!confirm('Excluir este ambiente? Os registros serão mantidos.')) return;
+  await db.collection('ambientes').doc(id).delete();
+  await carregarAmbientes();
+  renderQRList();
+  renderExportSelect();
+  notify('Ambiente removido', 'success');
+}
+
+async function salvarRegistro(dados) {
+  await db.collection('registros').add(dados);
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+async function renderDashboard() {
+  const dataFiltro = document.getElementById('filtro-data')?.value || '';
+  let inicio, fim;
+  if (dataFiltro) {
+    const d = new Date(dataFiltro + 'T00:00:00');
+    inicio = d; fim = new Date(dataFiltro + 'T23:59:59');
+  } else {
+    const hoje = new Date();
+    inicio = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    fim = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 23, 59, 59);
+    if (!document.getElementById('filtro-data').value) {
+      document.getElementById('filtro-data').value = hoje.toISOString().slice(0,10);
+    }
+  }
+
+  const snap = await db.collection('registros')
+    .where('timestamp', '>=', inicio)
+    .where('timestamp', '<=', fim)
+    .get();
+  const regs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  const limpaDia = new Set(regs.map(r => r.ambienteId));
+  const total = ambientesCache.length;
+  const limpos = limpaDia.size;
+  const pendentes = total - limpos;
+
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-card"><div class="label">Total ambientes</div><div class="value">${total}</div></div>
+    <div class="stat-card"><div class="label">Limpos hoje</div><div class="value green">${limpos}</div></div>
+    <div class="stat-card"><div class="label">Pendentes</div><div class="value amber">${pendentes}</div></div>
+    <div class="stat-card"><div class="label">Registros</div><div class="value">${regs.length}</div></div>
+  `;
+
+  const grid = document.getElementById('ambientes-dashboard');
+  grid.innerHTML = '';
+  ambientesCache.forEach(amb => {
+    const regsAmb = regs.filter(r => r.ambienteId === amb.id);
+    const ultimo = regsAmb[0];
+    const limpo = regsAmb.length > 0;
+    let statusClass = limpo ? 'limpo' : 'pendente';
+    let badgeClass = limpo ? 'badge-limpo' : 'badge-pendente';
+    let statusTxt = limpo ? '✓ Limpo' : '⏳ Pendente';
+    let ultimaTxt = limpo ? `Última: ${fmtHora(ultimo.timestamp?.toDate?.() || new Date())} — ${ultimo.funcionario}` : 'Sem registro hoje';
+
+    const tarefasDots = limpo && ultimo.tarefas ? TAREFAS.map((_, i) => {
+      const t = ultimo.tarefas[i];
+      const color = t === 'ok' ? 'var(--green-mid)' : t === 'na' ? '#ccc' : 'var(--red)';
+      return `<div class="task-dot" style="background:${color}" title="${TAREFAS[i]}"></div>`;
+    }).join('') : '';
+
+    grid.innerHTML += `
+      <div class="ambiente-card ${statusClass}">
+        <h4>${amb.nome}</h4>
+        <div class="setor">${amb.setor || '—'}</div>
+        <div class="status-badge ${badgeClass}">${statusTxt}</div>
+        <div class="ultima">${ultimaTxt}</div>
+        ${tarefasDots ? `<div class="tasks-mini">${tarefasDots}</div>` : ''}
+      </div>`;
+  });
+}
+
+// ============================================================
+// REGISTROS
+// ============================================================
+async function renderRegistros() {
+  const ambId = document.getElementById('filtro-ambiente').value;
+  const mes = document.getElementById('filtro-mes').value;
+  const regs = await carregarRegistros(ambId, mes);
+  const tbody = document.getElementById('registros-tbody');
+  tbody.innerHTML = '';
+  if (!regs.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">Nenhum registro encontrado</td></tr>';
+    return;
+  }
+  regs.forEach(r => {
+    const amb = ambientesCache.find(a => a.id === r.ambienteId);
+    const ok = r.tarefas ? r.tarefas.filter(t => t === 'ok').length : 0;
+    const total = TAREFAS.length;
+    tbody.innerHTML += `
+      <tr>
+        <td style="font-family:'DM Mono',monospace;font-size:0.8rem">${fmtDataHora(r.timestamp?.toDate?.() || new Date())}</td>
+        <td><strong>${amb?.nome || r.ambienteNome || '—'}</strong></td>
+        <td style="color:var(--muted)">${amb?.setor || r.ambienteSetor || '—'}</td>
+        <td>${r.funcionario || '—'}</td>
+        <td><span style="color:var(--green)">${ok}/${total}</span></td>
+        <td style="color:var(--muted);font-size:0.8rem">${r.observacoes || '—'}</td>
+      </tr>`;
+  });
+}
+
+function populateFiltroAmbiente() {
+  const sel = document.getElementById('filtro-ambiente');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Todos ambientes</option>';
+  ambientesCache.forEach(a => sel.innerHTML += `<option value="${a.id}" ${a.id===cur?'selected':''}>${a.nome}</option>`);
+}
+
+// ============================================================
+// QR LIST
+// ============================================================
+function renderQRList() {
+  const list = document.getElementById('qr-list');
+  list.innerHTML = '';
+  if (!ambientesCache.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:1rem">Nenhum ambiente cadastrado</div>';
+    return;
+  }
+  ambientesCache.forEach(amb => {
+    list.innerHTML += `
+      <div class="qr-item">
+        <div class="qr-item-info">
+          <h5>${amb.nome}</h5>
+          <span>${amb.setor || '—'}</span>
+        </div>
+        <div class="qr-item-actions">
+          <button class="btn-icon" onclick="verQR('${amb.id}')">📱 QR</button>
+          <button class="btn-icon danger" onclick="excluirAmbiente('${amb.id}')">✕</button>
+        </div>
+      </div>`;
+  });
+}
+
+function renderExportSelect() {
+  const sel = document.getElementById('exp-ambiente');
+  sel.innerHTML = '<option value="">Selecione o ambiente...</option>';
+  ambientesCache.forEach(a => sel.innerHTML += `<option value="${a.id}">${a.nome} — ${a.setor || ''}</option>`);
+}
+
+// ============================================================
+// QR MODAL
+// ============================================================
+let qrInstance = null;
+function verQR(ambId) {
+  const amb = ambientesCache.find(a => a.id === ambId);
+  if (!amb) return;
+  document.getElementById('qr-modal-nome').textContent = amb.nome;
+  document.getElementById('qr-modal-setor').textContent = amb.setor || '';
+  document.getElementById('qr-display').innerHTML = '';
+  const qrData = JSON.stringify({ ambienteId: amb.id, nome: amb.nome, setor: amb.setor || '' });
+  qrInstance = new QRCode(document.getElementById('qr-display'), { text: qrData, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.H });
+  document.getElementById('modal-qr').classList.add('open');
+}
+function fecharModal() { document.getElementById('modal-qr').classList.remove('open'); }
+function imprimirQR() {
+  const nome = document.getElementById('qr-modal-nome').textContent;
+  const setor = document.getElementById('qr-modal-setor').textContent;
+  const qrDiv = document.getElementById('qr-display');
+  const img = qrDiv.querySelector('img') || qrDiv.querySelector('canvas');
+  let imgSrc = '';
+  if (img instanceof HTMLCanvasElement) imgSrc = img.toDataURL();
+  else if (img) imgSrc = img.src;
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>QR - ${nome}</title>
+  <style>body{font-family:Arial,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}
+  .card{border:2px solid #2d6a4f;border-radius:12px;padding:2rem;text-align:center;max-width:300px}
+  h2{color:#2d6a4f;margin:0 0 0.25rem}p{color:#666;margin:0 0 1rem;font-size:0.85rem}
+  img{width:200px;height:200px}</style></head>
+  <body><div class="card">
+  <h2>${nome}</h2><p>${setor}</p>
+  <img src="${imgSrc}">
+  <p style="margin-top:1rem;font-size:0.7rem;color:#999">LimpaCheck — ILPI</p>
+  </div><script>window.onload=()=>{window.print();}<\/script></body></html>`);
+  win.document.close();
+}
+
+// ============================================================
+// FUNCIONARIO — SCANNER
+// ============================================================
+function carregarAmbientesFunc() {
+  db.collection('ambientes').orderBy('nome').get().then(snap => {
+    ambientesCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const sel = document.getElementById('select-manual');
+    sel.innerHTML = '<option value="">— Selecionar ambiente —</option>';
+    ambientesCache.forEach(a => sel.innerHTML += `<option value="${a.id}">${a.nome} — ${a.setor || ''}</option>`);
+  });
+}
+
+function iniciarScanner() {
+  if (html5QrScanner) { html5QrScanner.stop().catch(() => {}); }
+  html5QrScanner = new Html5Qrcode("reader");
+  html5QrScanner.start({ facingMode: "environment" },
+    { fps: 10, qrbox: 220 },
+    (decodedText) => {
+      html5QrScanner.stop().catch(() => {});
+      processarQR(decodedText);
+    },
+    () => {}
+  ).catch(err => notify('Câmera indisponível. Use a seleção manual.', 'error'));
+}
+
+function processarQR(text) {
+  try {
+    const data = JSON.parse(text);
+    if (data.ambienteId) {
+      const amb = ambientesCache.find(a => a.id === data.ambienteId);
+      if (amb) { abrirChecklist(amb); return; }
+    }
+  } catch (e) {}
+  notify('QR Code inválido', 'error');
+}
+
+function selecionarAmbienteManual(id) {
+  if (!id) return;
+  const amb = ambientesCache.find(a => a.id === id);
+  if (amb) abrirChecklist(amb);
+}
+
+function abrirChecklist(amb) {
+  ambienteSelecionado = amb;
+  document.getElementById('checklist-nome').textContent = amb.nome;
+  document.getElementById('checklist-setor').textContent = amb.setor || '';
+  renderChecklist();
+  document.getElementById('area-scanner').style.display = 'none';
+  document.getElementById('area-checklist').style.display = 'block';
+  document.getElementById('area-success').style.display = 'none';
+}
+
+function renderChecklist() {
+  const cont = document.getElementById('checklist-items');
+  cont.innerHTML = '';
+  TAREFAS.forEach((tarefa, i) => {
+    cont.innerHTML += `
+      <div class="check-item" id="ci-${i}" onclick="toggleCheck(${i})">
+        <div class="check-box" id="cb-${i}"></div>
+        <label onclick="event.stopPropagation()">${tarefa}</label>
+        <button class="na-btn" id="na-${i}" onclick="event.stopPropagation();toggleNA(${i})">N/A</button>
+      </div>`;
+  });
+}
+
+function toggleCheck(i) {
+  const ci = document.getElementById('ci-' + i);
+  const cb = document.getElementById('cb-' + i);
+  if (ci.classList.contains('na')) return;
+  const checked = ci.classList.toggle('checked');
+  cb.textContent = checked ? '✓' : '';
+}
+
+function toggleNA(i) {
+  const ci = document.getElementById('ci-' + i);
+  const na = document.getElementById('na-' + i);
+  const cb = document.getElementById('cb-' + i);
+  const isNA = ci.classList.toggle('na');
+  ci.classList.remove('checked');
+  cb.textContent = isNA ? '—' : '';
+  na.classList.toggle('active', isNA);
+}
+
+async function confirmarLimpeza() {
+  const nome = document.getElementById('func-nome').value.trim();
+  if (!nome) { notify('Digite seu nome para confirmar', 'error'); return; }
+
+  const tarefas = TAREFAS.map((_, i) => {
+    const ci = document.getElementById('ci-' + i);
+    if (ci.classList.contains('na')) return 'na';
+    if (ci.classList.contains('checked')) return 'ok';
+    return 'nao';
+  });
+
+  const dados = {
+    ambienteId: ambienteSelecionado.id,
+    ambienteNome: ambienteSelecionado.nome,
+    ambienteSetor: ambienteSelecionado.setor || '',
+    funcionario: nome,
+    tarefas,
+    observacoes: document.getElementById('obs-texto').value.trim(),
+    timestamp: new Date()
+  };
+
+  try {
+    await salvarRegistro(dados);
+    document.getElementById('success-msg').textContent = `${ambienteSelecionado.nome} registrado por ${nome}.`;
+    document.getElementById('area-checklist').style.display = 'none';
+    document.getElementById('area-success').style.display = 'block';
+  } catch (e) {
+    notify('Erro ao salvar. Verifique a conexão.', 'error');
+  }
+}
+
+function novoRegistro() {
+  ambienteSelecionado = null;
+  document.getElementById('func-nome').value = '';
+  document.getElementById('obs-texto').value = '';
+  document.getElementById('select-manual').value = '';
+  voltarScanner();
+}
+
+function voltarScanner() {
+  if (html5QrScanner) { html5QrScanner.stop().catch(() => {}); html5QrScanner = null; }
+  document.getElementById('reader').innerHTML = '';
+  document.getElementById('area-scanner').style.display = 'block';
+  document.getElementById('area-checklist').style.display = 'none';
+  document.getElementById('area-success').style.display = 'none';
+}
+
+// ============================================================
+// EXPORTAR DOCX
+// ============================================================
+async function exportarDocx() {
+  const ambId = document.getElementById('exp-ambiente').value;
+  const mes = document.getElementById('exp-mes').value;
+  const empresa = document.getElementById('exp-empresa').value.trim();
+
+  if (!ambId || !mes) { notify('Selecione ambiente e mês', 'error'); return; }
+
+  const amb = ambientesCache.find(a => a.id === ambId);
+  const [ano, m] = mes.split('-');
+  const inicio = new Date(ano, m - 1, 1);
+  const fim = new Date(ano, m, 0, 23, 59, 59);
+
+  notify('Gerando documento...', '');
+  const snap = await db.collection('registros')
+    .where('ambienteId', '==', ambId)
+    .where('timestamp', '>=', inicio)
+    .where('timestamp', '<=', fim)
+    .orderBy('timestamp', 'asc')
+    .get();
+
+  const regs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  // Montar mapa: dia -> registro
+  const diasRegs = {};
+  regs.forEach(r => {
+    const d = r.timestamp?.toDate?.();
+    if (d) { const dia = d.getDate(); if (!diasRegs[dia]) diasRegs[dia] = []; diasRegs[dia].push(r); }
+  });
+
+  const diasNoMes = new Date(ano, m, 0).getDate();
+  const nomeMes = new Date(ano, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+  // Responsável padrão (mais frequente)
+  const responsavelPadrao = regs.length > 0 ? regs[0].funcionario : '';
+
+  gerarDocx({ amb, mes, nomeMes, ano, m: parseInt(m), empresa, diasNoMes, diasRegs, regs });
+}
+
+function gerarDocx({ amb, mes, nomeMes, ano, m, empresa, diasNoMes, diasRegs, regs }) {
+  // Gerar XML do docx manualmente (formato Open XML)
+  const diasNoMesN = diasNoMes;
+
+  // Para cada dia, pegar o status de cada tarefa
+  function getTarefaDia(dia, tarefaIdx) {
+    const rs = diasRegs[dia];
+    if (!rs || !rs.length) return '';
+    const r = rs[rs.length - 1]; // pegar o último registro do dia
+    if (!r.tarefas || !r.tarefas[tarefaIdx]) return '';
+    const v = r.tarefas[tarefaIdx];
+    if (v === 'ok') return '✓';
+    if (v === 'na') return 'N/A';
+    if (v === 'nao') return 'X';
+    return '';
+  }
+
+  function getFuncionarioDia(dia) {
+    const rs = diasRegs[dia];
+    if (!rs || !rs.length) return '';
+    return rs[rs.length-1].funcionario || '';
+  }
+
+  function getObsDia(dia) {
+    const rs = diasRegs[dia];
+    if (!rs || !rs.length) return '';
+    return rs[rs.length-1].observacoes || '';
+  }
+
+  // Gerar linhas da tabela de tarefas (dias em colunas)
+  const COLS_BLUE = "1A5276";
+  const COLS_HEADER = "D6EAF8";
+  const WHITE = "FFFFFF";
+  const LGRAY = "F2F3F4";
+
+  function xml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function cell(text, bold, bgColor, size, align, colSpan, vMerge) {
+    const b = bold ? '<w:b/>' : '';
+    const al = align || 'left';
+    const sz = (size || 18);
+    let shading = bgColor ? `<w:shd w:val="clear" w:color="auto" w:fill="${bgColor}"/>` : '';
+    let cs = colSpan > 1 ? `<w:gridSpan w:val="${colSpan}"/>` : '';
+    return `<w:tc>
+      <w:tcPr>${cs}${shading}
+        <w:tcMar><w:top w:w="60" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tcMar>
+      </w:tcPr>
+      <w:p><w:pPr><w:jc w:val="${al}"/><w:spacing w:before="0" w:after="0"/></w:pPr>
+      <w:r><w:rPr>${b}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/><w:color w:val="${bgColor===COLS_BLUE?'FFFFFF':'000000'}"/></w:rPr><w:t xml:space="preserve">${xml(String(text))}</w:t></w:r></w:p>
+    </w:tc>`;
+  }
+
+  // Tabela identificação
+  let tblIdent = `<w:tbl>
+<w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="9360" w:type="dxa"/><w:tblBorders>
+<w:top w:val="single" w:sz="4" w:color="AEB6BF"/><w:left w:val="single" w:sz="4" w:color="AEB6BF"/>
+<w:bottom w:val="single" w:sz="4" w:color="AEB6BF"/><w:right w:val="single" w:sz="4" w:color="AEB6BF"/>
+<w:insideH w:val="single" w:sz="4" w:color="AEB6BF"/><w:insideV w:val="single" w:sz="4" w:color="AEB6BF"/>
+</w:tblBorders></w:tblPr>
+<w:tblGrid><w:gridCol w:w="3000"/><w:gridCol w:w="6360"/></w:tblGrid>`;
+
+  const identRows = [
+    ['Ambiente / Cômodo:', amb.nome],
+    ['Setor / Bloco:', amb.setor || ''],
+    ['Mês / Ano:', nomeMes],
+    ['Responsável pela Limpeza:', regs.length > 0 ? regs[0].funcionario : ''],
+    ['Empresa Terceirizada:', empresa],
+  ];
+  identRows.forEach(([l, v]) => {
+    tblIdent += `<w:tr>${cell(l,true,COLS_HEADER,18,'left',1)}${cell(v,false,WHITE,18,'left',1)}</w:tr>`;
+  });
+  tblIdent += '</w:tbl>';
+
+  // Tabela legenda
+  let tblLeg = `<w:tbl>
+<w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="9360" w:type="dxa"/><w:tblBorders>
+<w:top w:val="single" w:sz="2" w:color="AEB6BF"/><w:left w:val="single" w:sz="2" w:color="AEB6BF"/>
+<w:bottom w:val="single" w:sz="2" w:color="AEB6BF"/><w:right w:val="single" w:sz="2" w:color="AEB6BF"/>
+<w:insideH w:val="single" w:sz="2" w:color="AEB6BF"/><w:insideV w:val="single" w:sz="2" w:color="AEB6BF"/>
+</w:tblBorders></w:tblPr>
+<w:tblGrid><w:gridCol w:w="9360"/></w:tblGrid>
+<w:tr>${cell('LEGENDA:  ✓ = Realizado   |   N/A = Não Aplicável   |   X = Não Realizado (justificar)',true,LGRAY,16,'left',1)}</w:tr>
+</w:tbl>`;
+
+  // Tabela de registros diários (dias em linhas, tarefas em colunas seria muito largo)
+  // Vamos fazer: linha por tarefa, colunas por dia (paisagem) — mas docx é complexo
+  // Alternativa mais viável: tabela com colunas: Dia | Func | T1 | T2 | ... | T11 | Obs
+  // Vamos fazer paisagem com dias nas linhas e tarefas abreviadas nas colunas
+
+  const TAREFAS_ABBR = [
+    "Piso varrer","Piso pano úmido","Banheiro","Superfícies","Mesa/bancada",
+    "Lixo/saco","Lixeiras","Mobiliário","Espelhos/vidros","Ventilação","Materiais"
+  ];
+
+  // Larguras: Dia=600, Func=1400, cada tarefa=600, Obs=1360 → total = 600+1400+11*600+1360 = 9960 (paisagem)
+  // Vamos ajustar para caber em paisagem: total largura ~13680 DXA (A4 paisagem 1cm margin)
+  const colDia = 600, colFunc = 1600, colTar = 650, colObs = 1480;
+  const totalW = colDia + colFunc + TAREFAS_ABBR.length * colTar + colObs;
+
+  let gridCols = `<w:gridCol w:w="${colDia}"/><w:gridCol w:w="${colFunc}"/>`;
+  TAREFAS_ABBR.forEach(() => gridCols += `<w:gridCol w:w="${colTar}"/>`);
+  gridCols += `<w:gridCol w:w="${colObs}"/>`;
+
+  let tblDiario = `<w:tbl>
+<w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="${totalW}" w:type="dxa"/>
+<w:tblBorders>
+<w:top w:val="single" w:sz="4" w:color="AEB6BF"/><w:left w:val="single" w:sz="4" w:color="AEB6BF"/>
+<w:bottom w:val="single" w:sz="4" w:color="AEB6BF"/><w:right w:val="single" w:sz="4" w:color="AEB6BF"/>
+<w:insideH w:val="single" w:sz="4" w:color="AEB6BF"/><w:insideV w:val="single" w:sz="4" w:color="AEB6BF"/>
+</w:tblBorders></w:tblPr>
+<w:tblGrid>${gridCols}</w:tblGrid>`;
+
+  // Header row
+  tblDiario += '<w:tr>';
+  tblDiario += cellW('Dia', true, COLS_BLUE, 16, 'center', colDia);
+  tblDiario += cellW('Funcionário', true, COLS_BLUE, 16, 'center', colFunc);
+  TAREFAS_ABBR.forEach(t => { tblDiario += cellW(t, true, COLS_BLUE, 14, 'center', colTar); });
+  tblDiario += cellW('Observações', true, COLS_BLUE, 16, 'center', colObs);
+  tblDiario += '</w:tr>';
+
+  // Linhas dos dias
+  for (let d = 1; d <= diasNoMesN; d++) {
+    const bg = d % 2 === 0 ? LGRAY : WHITE;
+    const func = getFuncionarioDia(d);
+    const obs = getObsDia(d);
+    tblDiario += '<w:tr>';
+    tblDiario += cellW(String(d).padStart(2,'0'), true, bg, 16, 'center', colDia);
+    tblDiario += cellW(func, false, bg, 15, 'left', colFunc);
+    TAREFAS.forEach((_, ti) => {
+      const val = getTarefaDia(d, ti);
+      const valColor = val === '✓' ? '145A32' : val === 'X' ? '922B21' : '666666';
+      tblDiario += cellWColor(val, false, bg, 15, 'center', colTar, valColor);
+    });
+    tblDiario += cellW(obs, false, bg, 14, 'left', colObs);
+    tblDiario += '</w:tr>';
+  }
+  tblDiario += '</w:tbl>';
+
+  // Tabela ocorrências
+  let tblOcorr = `<w:tbl>
+<w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="9360" w:type="dxa"/>
+<w:tblBorders>
+<w:top w:val="single" w:sz="4" w:color="AEB6BF"/><w:left w:val="single" w:sz="4" w:color="AEB6BF"/>
+<w:bottom w:val="single" w:sz="4" w:color="AEB6BF"/><w:right w:val="single" w:sz="4" w:color="AEB6BF"/>
+<w:insideH w:val="single" w:sz="4" w:color="AEB6BF"/><w:insideV w:val="single" w:sz="4" w:color="AEB6BF"/>
+</w:tblBorders></w:tblPr>
+<w:tblGrid><w:gridCol w:w="700"/><w:gridCol w:w="4700"/><w:gridCol w:w="2200"/><w:gridCol w:w="1760"/></w:tblGrid>`;
+  tblOcorr += '<w:tr>';
+  tblOcorr += cellW('DATA',true,COLS_BLUE,16,'center',700);
+  tblOcorr += cellW('DESCRIÇÃO DA OCORRÊNCIA / JUSTIFICATIVA',true,COLS_BLUE,16,'center',4700);
+  tblOcorr += cellW('PROVIDÊNCIA TOMADA',true,COLS_BLUE,16,'center',2200);
+  tblOcorr += cellW('RESPONSÁVEL',true,COLS_BLUE,16,'center',1760);
+  tblOcorr += '</w:tr>';
+
+  // Preencher ocorrências dos registros que têm observações
+  const ocorrencias = regs.filter(r => r.observacoes);
+  const linhasOcorr = Math.max(5, ocorrencias.length + 2);
+  for (let i = 0; i < linhasOcorr; i++) {
+    const oc = ocorrencias[i];
+    const bg = i % 2 === 0 ? WHITE : LGRAY;
+    if (oc) {
+      const d = oc.timestamp?.toDate?.();
+      tblOcorr += `<w:tr><w:trPr><w:trHeight w:val="500"/></w:trPr>`;
+      tblOcorr += cellW(d ? fmtData(d) : '', false, bg, 15, 'center', 700);
+      tblOcorr += cellW(oc.observacoes, false, bg, 15, 'left', 4700);
+      tblOcorr += cellW('', false, bg, 15, 'left', 2200);
+      tblOcorr += cellW(oc.funcionario || '', false, bg, 15, 'left', 1760);
+      tblOcorr += '</w:tr>';
+    } else {
+      tblOcorr += `<w:tr><w:trPr><w:trHeight w:val="500"/></w:trPr>`;
+      tblOcorr += cellW('', false, bg, 15, 'left', 700);
+      tblOcorr += cellW('', false, bg, 15, 'left', 4700);
+      tblOcorr += cellW('', false, bg, 15, 'left', 2200);
+      tblOcorr += cellW('', false, bg, 15, 'left', 1760);
+      tblOcorr += '</w:tr>';
+    }
+  }
+  tblOcorr += '</w:tbl>';
+
+  // Tabela assinaturas
+  let tblAssin = `<w:tbl>
+<w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="9360" w:type="dxa"/>
+<w:tblBorders>
+<w:top w:val="single" w:sz="4" w:color="AEB6BF"/><w:left w:val="single" w:sz="4" w:color="AEB6BF"/>
+<w:bottom w:val="single" w:sz="4" w:color="AEB6BF"/><w:right w:val="single" w:sz="4" w:color="AEB6BF"/>
+<w:insideH w:val="single" w:sz="4" w:color="AEB6BF"/><w:insideV w:val="single" w:sz="4" w:color="AEB6BF"/>
+</w:tblBorders></w:tblPr>
+<w:tblGrid><w:gridCol w:w="3120"/><w:gridCol w:w="3120"/><w:gridCol w:w="3120"/></w:tblGrid>`;
+  tblAssin += '<w:tr>';
+  tblAssin += cellW('Funcionário Responsável', true, COLS_HEADER, 16, 'center', 3120);
+  tblAssin += cellW('Supervisor / Encarregado', true, COLS_HEADER, 16, 'center', 3120);
+  tblAssin += cellW('Responsável ILPI / Fiscalização', true, COLS_HEADER, 16, 'center', 3120);
+  tblAssin += '</w:tr>';
+  tblAssin += `<w:tr><w:trPr><w:trHeight w:val="900"/></w:trPr>`;
+  tblAssin += cellW('Assinatura: _________________________\nNome: __________________________\nData: ___/___/______', false, WHITE, 16, 'left', 3120);
+  tblAssin += cellW('Assinatura: _________________________\nNome: __________________________\nData: ___/___/______', false, WHITE, 16, 'left', 3120);
+  tblAssin += cellW('Assinatura: _________________________\nNome: __________________________\nData: ___/___/______', false, WHITE, 16, 'left', 3120);
+  tblAssin += '</w:tr></w:tbl>';
+
+  function para(text, bold, size, color) {
+    const b = bold ? '<w:b/>' : '';
+    const c = color ? `<w:color w:val="${color}"/>` : '';
+    const sz = size || 22;
+    return `<w:p><w:pPr><w:spacing w:before="120" w:after="80"/></w:pPr>
+    <w:r><w:rPr>${b}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/>${c}</w:rPr>
+    <w:t xml:space="preserve">${xml(text)}</w:t></w:r></w:p>`;
+  }
+
+  function secTitle(text) {
+    return `<w:p><w:pPr><w:spacing w:before="200" w:after="80"/></w:pPr>
+    <w:r><w:rPr><w:b/><w:sz w:val="20"/><w:szCs w:val="20"/><w:color w:val="${COLS_BLUE}"/></w:rPr>
+    <w:t>${xml(text)}</w:t></w:r></w:p>`;
+  }
+
+  const notaLegal = `<w:p><w:pPr><w:spacing w:before="200" w:after="0"/></w:pPr>
+    <w:r><w:rPr><w:i/><w:sz w:val="14"/><w:szCs w:val="14"/><w:color w:val="777777"/></w:rPr>
+    <w:t xml:space="preserve">Documento elaborado em conformidade com: RDC ANVISA n&#xBA; 283/2005 (ILPI), RDC ANVISA n&#xBA; 216/2004, Nota T&#xE9;cnica GVIMS/GGTES/ANVISA n&#xBA; 04/2020. Manter arquivado por no m&#xED;nimo 5 anos.</w:t></w:r></w:p>`;
+
+  // Montar XML do document.xml
+  const docXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
+  xmlns:mo="http://schemas.microsoft.com/office/mac/office/2008/main"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:mv="urn:schemas-microsoft-com:mac:vml"
+  xmlns:o="urn:schemas-microsoft-com:office:office"
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+  xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"
+  xmlns:v="urn:schemas-microsoft-com:vml"
+  xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"
+  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+  xmlns:w10="urn:schemas-microsoft-com:office:word"
+  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+  xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
+  xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"
+  xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+  xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml"
+  xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
+  mc:Ignorable="mv mo w14 wp14">
+<w:body>
+
+<!-- PÁGINA 1: Identificação + Registro Diário (paisagem) -->
+<w:sectPr>
+  <w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/>
+  <w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720" w:header="0" w:footer="0" w:gutter="0"/>
+</w:sectPr>
+
+${para('REGISTRO MENSAL DE LIMPEZA — ILPI  |  Conforme RDC ANVISA 283/2005', true, 28, COLS_BLUE)}
+${para(' ', false, 12)}
+${tblIdent}
+${para(' ', false, 12)}
+${tblLeg}
+${secTitle('REGISTRO DIÁRIO DE ATIVIDADES')}
+${tblDiario}
+${para(' ', false, 12)}
+${notaLegal}
+
+<w:p><w:pPr><w:sectPr>
+  <w:pgSz w:w="12240" w:h="15840"/>
+  <w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080" w:header="0" w:footer="0" w:gutter="0"/>
+</w:sectPr></w:pPr></w:p>
+
+${para('REGISTRO MENSAL DE LIMPEZA — ILPI  |  Ocorrências e Assinaturas', true, 28, COLS_BLUE)}
+${para('Ambiente: ' + amb.nome + '   Mês/Ano: ' + nomeMes + '   Responsável: ' + (regs[0]?.funcionario||''), false, 17)}
+${secTitle('REGISTRO DE OCORRÊNCIAS E JUSTIFICATIVAS')}
+${tblOcorr}
+${para(' ', false, 16)}
+${secTitle('REVISÃO E APROVAÇÃO MENSAL')}
+${para('Ao assinar, declaro que as informações registradas neste documento são verídicas e que as atividades de limpeza foram realizadas conforme os procedimentos estabelecidos.', false, 16, '555555')}
+${para(' ', false, 12)}
+${tblAssin}
+${para(' ', false, 16)}
+${notaLegal}
+
+<w:sectPr>
+  <w:pgSz w:w="12240" w:h="15840"/>
+  <w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080" w:header="0" w:footer="0" w:gutter="0"/>
+</w:sectPr>
+
+</w:body></w:document>`;
+
+  // Montar zip
+  const zip = new JSZip();
+  zip.file("word/document.xml", docXml);
+  zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`);
+  zip.file("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`);
+  zip.file("word/_rels/document.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+</Relationships>`);
+
+  zip.generateAsync({ type: "blob" }).then(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const mesStr = document.getElementById('exp-mes').value.replace('-','_');
+    a.download = `registro_limpeza_${amb.nome.replace(/\s+/g,'_')}_${mesStr}.docx`;
+    a.click();
+    URL.revokeObjectURL(url);
+    notify('Documento gerado!', 'success');
+  });
+}
+
+// Helpers para células com largura explícita
+function cellW(text, bold, bgColor, size, align, width) {
+  return cellWColor(text, bold, bgColor, size, align, width, null);
+}
+
+function cellWColor(text, bold, bgColor, size, align, width, textColor) {
+  const b = bold ? '<w:b/>' : '';
+  const al = align || 'left';
+  const sz = size || 18;
+  const COLS_BLUE = "1A5276";
+  const autoColor = textColor ? textColor : (bgColor === COLS_BLUE ? 'FFFFFF' : '000000');
+  const col = `<w:color w:val="${autoColor}"/>`;
+  const shading = bgColor ? `<w:shd w:val="clear" w:color="auto" w:fill="${bgColor}"/>` : '';
+  const lines = String(text).split('\n');
+  const pars = lines.map((line, i) => `<w:p><w:pPr><w:jc w:val="${al}"/><w:spacing w:before="0" w:after="0"/></w:pPr>
+    <w:r><w:rPr>${b}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/>${col}</w:rPr>
+    <w:t xml:space="preserve">${escXml(line)}</w:t></w:r></w:p>`).join('');
+  return `<w:tc><w:tcPr>
+    <w:tcW w:w="${width}" w:type="dxa"/>
+    ${shading}
+    <w:tcMar><w:top w:w="60" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tcMar>
+  </w:tcPr>${pars}</w:tc>`;
+}
+
+function escXml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ============================================================
+// UTILS
+// ============================================================
+function fmtData(d) { return d.toLocaleDateString('pt-BR'); }
+function fmtHora(d) { return d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }); }
+function fmtDataHora(d) { return d.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }); }
+
+function notify(msg, type) {
+  const n = document.getElementById('notif');
+  n.textContent = msg;
+  n.className = 'notif show ' + (type || '');
+  setTimeout(() => n.classList.remove('show'), 3000);
+}
+
+// Init
+document.getElementById('filtro-data') && (document.getElementById('filtro-data').value = new Date().toISOString().slice(0,10));
+</script>
+</body>
+</html>
