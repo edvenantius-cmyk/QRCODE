@@ -9,6 +9,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+// Garante acesso global ao jsPDF independente da versão do bundle
+window.addEventListener('load', function(){
+  if(window.jspdf && window.jspdf.jsPDF && !window.jsPDF){
+    window.jsPDF = window.jspdf.jsPDF;
+  }
+});
+</script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -834,17 +842,23 @@ const PDF={
     const ambs=ambId?S.ambs.filter(a=>a.id===ambId):S.ambs;
     if(!ambs.length){Ntf.show('Nenhum ambiente disponível','err');return}
     Ntf.show('Gerando PDF...','info');
-    const lista=[];
-    for(const a of ambs){
-      const regs=await DB.regsDoMes(a.id,mes);
-      lista.push({amb:a,regs});
+    try{
+      const lista=[];
+      for(const a of ambs){
+        const regs=await DB.regsDoMes(a.id,mes);
+        lista.push({amb:a,regs});
+      }
+      this.build(lista,mes,empresa);
+    }catch(e){
+      console.error('Erro PDF:',e);
+      Ntf.show('Erro ao gerar PDF: '+e.message,'err');
     }
-    this.build(lista,mes,empresa);
   },
 
   build(lista,mes,empresa){
-    const jsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
-    if(!jsPDF){Ntf.show('Erro: jsPDF não carregou','err');return}
+    try{
+    const jsPDF = window.jsPDF || (window.jspdf && window.jspdf.jsPDF);
+    if(!jsPDF){Ntf.show('Erro: biblioteca PDF não carregou. Recarregue a página.','err');return}
     const[ano,m]=mes.split('-');
     const nomeMes=Fmt.mesNome(ano,m);
     const diasN=Fmt.diasNoMes(ano,m);
@@ -882,6 +896,7 @@ const PDF={
       :`registros_todos_${mes}.pdf`;
     doc.save(fn);
     Ntf.show('PDF gerado!','ok');
+    }catch(e){console.error('Erro build PDF:',e);Ntf.show('Erro ao montar PDF: '+e.message,'err')}
   },
 
   paginaTarefas(doc,amb,mp,diasN,nomeMes,mes,empresa,resp,C){
