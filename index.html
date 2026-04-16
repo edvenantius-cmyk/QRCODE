@@ -554,7 +554,7 @@ const Regs={
         <td><button class="bi del btn-xs" onclick="Regs.del('${r.id}')">🗑</button></td>
       </tr>`;
     });
-  }
+  },
   async del(id){
     if(!confirm('Excluir este registro permanentemente?'))return;
     await db.collection('registros').doc(id).delete();
