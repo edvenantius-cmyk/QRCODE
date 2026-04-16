@@ -259,7 +259,7 @@ tbody tr:hover td{background:var(--bg)}
       </div>
       <div class="twrap">
         <table>
-          <thead><tr><th>Data/Hora</th><th>Ambiente</th><th>Setor</th><th>Funcionário</th><th>Tarefas</th><th>Obs.</th></tr></thead>
+          <thead><tr><th>Data/Hora</th><th>Ambiente</th><th>Setor</th><th>Funcionário</th><th>Tarefas</th><th>Obs.</th><th></th></tr></thead>
           <tbody id="regs-body"></tbody>
         </table>
       </div>
@@ -459,7 +459,24 @@ const Tabs={show(t,btn){['dash','regs','ambs','exp'].forEach(x=>document.getElem
 const DB={
   async loadAmbs(){const s=await db.collection('ambientes').orderBy('nome').get();S.ambs=s.docs.map(d=>({id:d.id,...d.data()}))},
   async regsDeData(data){const ini=new Date(data+'T00:00:00'),fim=new Date(data+'T23:59:59');const s=await db.collection('registros').where('timestamp','>=',ini).where('timestamp','<=',fim).get();return s.docs.map(d=>({id:d.id,...d.data()}))},
-  async regsDoMes(ambId,mes){let q=db.collection('registros');if(ambId)q=q.where('ambienteId','==',ambId);const[a,m]=mes.split('-');const ini=new Date(+a,+m-1,1),fim=new Date(+a,+m,0,23,59,59);q=q.where('timestamp','>=',ini).where('timestamp','<=',fim);const s=await q.orderBy('timestamp','desc').get();return s.docs.map(d=>({id:d.id,...d.data()}))},
+  async regsDoMes(ambId,mes){
+    const[a,m]=mes.split('-');
+    const ini=new Date(+a,+m-1,1),fim=new Date(+a,+m,0,23,59,59);
+    let q=db.collection('registros').where('timestamp','>=',ini).where('timestamp','<=',fim);
+    if(ambId){
+      q=q.where('ambienteId','==',ambId);
+      const s=await q.orderBy('timestamp','desc').get();
+      return s.docs.map(d=>({id:d.id,...d.data()}));
+    } else {
+      const s=await q.get();
+      const docs=s.docs.map(d=>({id:d.id,...d.data()}));
+      return docs.sort((a,b)=>{
+        const ta=a.timestamp?.toDate?.()?.getTime()||0;
+        const tb=b.timestamp?.toDate?.()?.getTime()||0;
+        return tb-ta;
+      });
+    }
+  },
   async salvar(d){return db.collection('registros').add(d)}
 };
 
@@ -527,19 +544,24 @@ const Regs={
     regs.forEach(r=>{
       const a=S.ambs.find(x=>x.id===r.ambienteId);
       const ok=r.tarefas?r.tarefas.filter(v=>v==='ok').length:0;
-      tb.innerHTML+=`<tr onclick="Det.openReg('${r.id}')">
-        <td style="font-family:'DM Mono',monospace;font-size:.75rem">${Fmt.dh(r.timestamp?.toDate?.())}</td>
-        <td class="tlink"><strong>${esc(a?.nome||r.ambienteNome||'—')}</strong></td>
-        <td style="color:var(--mu)">${esc(a?.setor||r.ambienteSetor||'—')}</td>
-        <td>${esc(r.funcionario||'—')}</td>
-        <td style="color:var(--gm);font-weight:500">${ok}/${TAREFAS.length}</td>
-        <td style="color:var(--mu);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.observacoes||'—')}</td>
+      tb.innerHTML+=`<tr>
+        <td onclick="Det.openReg('${r.id}')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:.75rem">${Fmt.dh(r.timestamp?.toDate?.())}</td>
+        <td onclick="Det.openReg('${r.id}')" style="cursor:pointer" class="tlink"><strong>${esc(a?.nome||r.ambienteNome||'—')}</strong></td>
+        <td onclick="Det.openReg('${r.id}')" style="cursor:pointer;color:var(--mu)">${esc(a?.setor||r.ambienteSetor||'—')}</td>
+        <td onclick="Det.openReg('${r.id}')" style="cursor:pointer">${esc(r.funcionario||'—')}</td>
+        <td onclick="Det.openReg('${r.id}')" style="cursor:pointer;color:var(--gm);font-weight:500">${ok}/${TAREFAS.length}</td>
+        <td onclick="Det.openReg('${r.id}')" style="cursor:pointer;color:var(--mu);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.observacoes||'—')}</td>
+        <td><button class="bi del btn-xs" onclick="Regs.del('${r.id}')">🗑</button></td>
       </tr>`;
     });
   }
+  async del(id){
+    if(!confirm('Excluir este registro permanentemente?'))return;
+    await db.collection('registros').doc(id).delete();
+    Ntf.show('Registro excluído','ok');
+    this.render();
+  }
 };
-
-// ── DETALHE ───────────────────────────────────────────────
 const Det={
   async openDash(ambId,dt){
     const regs=await DB.regsDeData(dt);
@@ -563,8 +585,19 @@ const Det={
         <p style="font-size:.82rem;line-height:1.9"><b>Data/Hora:</b> ${dt?Fmt.dh(dt):'—'}<br><b>Funcionário:</b> ${esc(r.funcionario||'—')}<br><b>Setor:</b> ${esc(a?.setor||r.ambienteSetor||'—')}</p>
         <h4>Tarefas</h4>${rows}
         ${r.observacoes?`<h4>Observações</h4><p style="font-size:.82rem;line-height:1.6;background:var(--bg);padding:.65rem;border-radius:8px">${esc(r.observacoes)}</p>`:''}
+        <div style="margin-top:1.1rem;padding-top:.875rem;border-top:1px solid var(--bd)">
+          <button class="btn btn-sm" style="color:var(--rd);border:1.5px solid rgba(185,28,28,.3);background:var(--rdl)" onclick="Det.del('${r.id}')">🗑 Excluir este registro</button>
+        </div>
       </div>`;
     M.open('modal-det');
+  },
+  async del(id){
+    if(!confirm('Excluir este registro permanentemente?'))return;
+    await db.collection('registros').doc(id).delete();
+    M.close('modal-det');
+    Ntf.show('Registro excluído','ok');
+    Regs.render();
+    Dash.render();
   }
 };
 
@@ -810,7 +843,7 @@ const PDF={
   },
 
   build(lista,mes,empresa){
-    const{jsPDF}=window.jspdf;
+    const jsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
     if(!jsPDF){Ntf.show('Erro: jsPDF não carregou','err');return}
     const[ano,m]=mes.split('-');
     const nomeMes=Fmt.mesNome(ano,m);
