@@ -208,16 +208,41 @@ tbody tr:hover td{background:var(--bg)}
 .pill{display:inline-block;padding:.15rem .5rem;border-radius:10px;font-size:.65rem;font-weight:500}
 .pill-g{background:var(--gx);color:var(--gd)}.pill-a{background:var(--aml);color:var(--am)}.pill-r{background:var(--rdl);color:var(--rd)}
 
-/* Calendário de conformidade */
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:.3rem}
-.cal-day{aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:500;position:relative}
+/* Calendário de conformidade — compacto */
+.cal-wrap{max-width:196px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px}
+.cal-day{width:100%;aspect-ratio:1;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:.48rem;font-weight:600}
 .cal-day.cd-ok{background:var(--gx);color:var(--gd)}
 .cal-day.cd-par{background:var(--aml);color:var(--am)}
 .cal-day.cd-no{background:var(--rdl);color:var(--rd)}
-.cal-day.cd-fut{background:var(--bg);color:var(--bd)}
-.cal-day.cd-vaz{background:var(--bg);color:var(--mu)}
-.cal-labels{display:grid;grid-template-columns:repeat(7,1fr);gap:.3rem;margin-bottom:.3rem}
-.cal-label{font-size:.6rem;color:var(--mu);text-align:center;font-weight:500}
+.cal-day.cd-fut{background:var(--bd);color:#aaa}
+.cal-day.cd-vaz{background:transparent}
+.cal-labels{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-bottom:1px}
+.cal-label{font-size:.44rem;color:var(--mu);text-align:center;font-weight:600;text-transform:uppercase}
+
+/* Cards por quarto no relatório */
+.quarto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem}
+.quarto-card{background:var(--bg);border-radius:var(--r);padding:.9rem 1rem;border:2px solid var(--bd);cursor:pointer;transition:all .14s;position:relative}
+.quarto-card:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.1)}
+.quarto-card.qc-ok{border-color:var(--gl);background:var(--gxs)}
+.quarto-card.qc-med{border-color:var(--am);background:#fffbeb}
+.quarto-card.qc-low{border-color:var(--rd);background:var(--rdl)}
+.quarto-card h4{font-size:.85rem;font-weight:600;margin-bottom:.15rem}
+.quarto-card .qsetor{font-size:.68rem;color:var(--mu);margin-bottom:.5rem}
+.quarto-card .qpct{font-size:1.35rem;font-weight:700;font-family:'DM Mono',monospace}
+.quarto-card .qsub{font-size:.67rem;color:var(--mu);margin-top:.1rem}
+.quarto-card .qbar{height:5px;border-radius:3px;background:rgba(0,0,0,.08);margin:.5rem 0;overflow:hidden}
+.quarto-card .qbar-fill{height:100%;border-radius:3px}
+.quarto-atencao{position:absolute;top:.55rem;right:.6rem;font-size:.6rem;font-weight:600;padding:.1rem .4rem;border-radius:10px}
+.qa-alerta{background:var(--rdl);color:var(--rd)}.qa-med{background:var(--aml);color:var(--am)}.qa-ok{background:var(--gx);color:var(--gd)}
+
+/* Modal detalhe quarto */
+.qdet-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin:.5rem 0}
+.qdet-day{aspect-ratio:1;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:.56rem;font-weight:500}
+.qdet-ok{background:var(--gx);color:var(--gd)}.qdet-no{background:var(--rdl);color:var(--rd)}.qdet-fut{background:var(--bg);color:var(--bd)}.qdet-vaz{background:transparent}
+.tar-mini{font-size:.74rem;display:flex;align-items:center;gap:.4rem;padding:.28rem 0;border-bottom:1px solid var(--bd)}
+.tar-mini:last-child{border-bottom:none}
+.tar-mini .tic{width:15px;height:15px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:.58rem;flex-shrink:0;font-weight:700}
 
 /* Alertas */
 .alert-list{display:flex;flex-direction:column;gap:.5rem}
@@ -292,7 +317,8 @@ tbody tr:hover td{background:var(--bg)}
     <button class="atab on"  onclick="Tabs.show('dash',this)">Dashboard</button>
     <button class="atab"     onclick="Tabs.show('regs',this)">Registros</button>
     <button class="atab"     onclick="Tabs.show('ambs',this)">Ambientes / QR</button>
-    <button class="atab"     onclick="Tabs.show('rel',this)">Relatório</button>
+    <button class="atab"     onclick="Tabs.show('rel',this)">Relatório Geral</button>
+    <button class="atab"     onclick="Tabs.show('quarto',this)">Por Quarto</button>
   </div>
   <div class="abody">
 
@@ -341,14 +367,23 @@ tbody tr:hover td{background:var(--bg)}
 
     <!-- RELATÓRIO -->
     <div id="tab-rel" style="display:none">
-      <!-- filtros fora do bloco imprimível -->
       <div class="frow" id="rel-filters">
-        <select id="rel-a"><option value="">Todos os ambientes</option></select>
         <input type="month" id="rel-m">
         <button class="btn bp bsm" onclick="Rel.gerar()">🔄 Gerar Relatório</button>
         <button class="btn bbl bsm" onclick="Rel.imprimir()">🖨️ Imprimir</button>
       </div>
       <div id="rel-output"></div>
+    </div>
+
+    <!-- POR QUARTO -->
+    <div id="tab-quarto" style="display:none">
+      <div class="frow">
+        <select id="qrel-amb"><option value="">— Selecione o ambiente —</option></select>
+        <input type="month" id="qrel-m">
+        <button class="btn bp bsm" onclick="QRel.gerar()">🔄 Gerar</button>
+        <button class="btn bbl bsm" onclick="QRel.imprimir()">🖨️ Imprimir</button>
+      </div>
+      <div id="qrel-output"></div>
     </div>
 
   </div>
@@ -422,8 +457,21 @@ tbody tr:hover td{background:var(--bg)}
   <div class="modal" style="max-width:420px">
     <div class="mhdr"><h3 id="det-ttl">Detalhes</h3><button class="mcl" onclick="M.c('m-det')">✕</button></div>
     <div class="ds" id="det-body"></div>
-    <div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--bd)">
-      <button class="btn bsm" id="det-del-btn" style="background:var(--rdl);color:var(--rd);border:1.5px solid rgba(185,28,28,.25)" onclick="Det.del()">🗑️ Apagar registro</button>
+    <div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--bd);display:flex;gap:.5rem;flex-wrap:wrap">
+      <button class="btn bbl bsm" onclick="Det.imprimir()">🖨️ Imprimir</button>
+      <button class="btn bsm" id="det-del-btn" style="background:var(--rdl);color:var(--rd);border:1.5px solid rgba(185,28,28,.25)" onclick="Det.del()">🗑️ Apagar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALHE QUARTO -->
+<div class="overlay" id="m-qdet">
+  <div class="modal" style="max-width:480px">
+    <div class="mhdr"><h3 id="qdet-ttl">Detalhes do Quarto</h3><button class="mcl" onclick="M.c('m-qdet')">✕</button></div>
+    <div id="qdet-body"></div>
+    <div style="display:flex;gap:.6rem;margin-top:1rem">
+      <button class="btn bp" style="flex:1" onclick="Rel.imprimirQuarto()">🖨️ Imprimir este quarto</button>
+      <button class="btn bg" style="flex:1" onclick="M.c('m-qdet')">Fechar</button>
     </div>
   </div>
 </div>
@@ -497,7 +545,7 @@ const Nav={go(s){document.querySelectorAll('.screen').forEach(e=>e.classList.rem
 const Auth={login(){const v=document.getElementById('inp-pw').value;if(v===PW){document.getElementById('login-err').style.display='none';Nav.go('adm')}else document.getElementById('login-err').style.display='block'}};
 
 // ── TABS ──
-const Tabs={show(t,btn){['dash','regs','ambs','rel'].forEach(x=>document.getElementById('tab-'+x).style.display=x===t?'block':'none');document.querySelectorAll('.atab').forEach(b=>b.classList.remove('on'));btn&&btn.classList.add('on');if(t==='dash')Dash.render();if(t==='regs')Regs.render();if(t==='ambs')Ambs.list();if(t==='rel')Rel.init()}};
+const Tabs={show(t,btn){['dash','regs','ambs','rel','quarto'].forEach(x=>document.getElementById('tab-'+x).style.display=x===t?'block':'none');document.querySelectorAll('.atab').forEach(b=>b.classList.remove('on'));btn&&btn.classList.add('on');if(t==='dash')Dash.render();if(t==='regs')Regs.render();if(t==='ambs')Ambs.list();if(t==='rel')Rel.init();if(t==='quarto')QRel.init()}};
 
 // ── DB ──
 const DB={
@@ -599,6 +647,22 @@ const Det={cur:null,
     await db.collection('registros').doc(this.cur.id).delete();
     M.c('m-det');Ntf.show('Registro apagado','ok');
     Dash.render();Regs.render();
+  },
+  imprimir(){
+    if(!this.cur)return;
+    const ttl=document.getElementById('det-ttl').textContent;
+    const body=document.getElementById('det-body').innerHTML;
+    const printDiv=document.getElementById('print-only-rel');
+    printDiv.innerHTML=`<div style="font-family:'DM Sans',sans-serif;padding:1.5rem;max-width:600px">
+      <div style="background:#1b4332;color:#fff;padding:.85rem 1.2rem;border-radius:8px 8px 0 0;margin-bottom:0">
+        <div style="font-size:1rem;font-weight:600">${esc(ttl)}</div>
+        <div style="font-size:.72rem;opacity:.7;margin-top:.1rem">ILPI · Registro de Limpeza · ${new Date().toLocaleString('pt-BR')}</div>
+      </div>
+      <div style="border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:1rem">${body}</div>
+    </div>`;
+    printDiv.style.display='block';
+    window.print();
+    setTimeout(()=>{printDiv.style.display='none';printDiv.innerHTML=''},600);
   }
 };
 
@@ -695,14 +759,14 @@ const Func={async init(){Scan.reset();await DB.loadAmbs();const s=document.getEl
 // RELATÓRIO
 // ══════════════════════════════════════════════════════════
 const Rel={
+  _quartoData:{}, // cache dos dados por quarto para o modal
+  _mesCtx:'',     // contexto do mês atual
+
   init(){
-    const s=document.getElementById('rel-a');s.innerHTML='<option value="">Todos os ambientes</option>';
-    S.ambs.forEach(a=>s.innerHTML+=`<option value="${a.id}">${esc(a.nome)}</option>`);
     if(!document.getElementById('rel-m').value)document.getElementById('rel-m').value=new Date().toISOString().slice(0,7);
   },
   resetar(){
     document.getElementById('rel-output').innerHTML='';
-    document.getElementById('rel-a').value='';
     document.getElementById('rel-m').value=new Date().toISOString().slice(0,7);
     Ntf.show('Relatório limpo','info');
   },
@@ -713,27 +777,83 @@ const Rel={
     printDiv.innerHTML=output.innerHTML;
     printDiv.style.display='block';
     window.print();
-    setTimeout(()=>{printDiv.style.display='none';printDiv.innerHTML=''},500);
+    setTimeout(()=>{printDiv.style.display='none';printDiv.innerHTML=''},600);
   },
+  imprimirQuarto(){
+    const body=document.getElementById('qdet-body');
+    const ttl=document.getElementById('qdet-ttl').textContent;
+    const printDiv=document.getElementById('print-only-rel');
+    printDiv.innerHTML=`<div style="font-family:DM Sans,sans-serif;padding:1rem"><h2 style="font-size:1rem;margin-bottom:.25rem">${esc(ttl)}</h2><p style="font-size:.75rem;color:#6b7280;margin-bottom:1rem">ILPI · Gerado em ${new Date().toLocaleString('pt-BR')}</p>${body.innerHTML}</div>`;
+    printDiv.style.display='block';
+    window.print();
+    setTimeout(()=>{printDiv.style.display='none';printDiv.innerHTML=''},600);
+  },
+  abrirQuarto(ambId){
+    const d=this._quartoData[ambId];if(!d)return;
+    const mes=this._mesCtx;
+    const[ano,m]=mes.split('-');
+    const diasN=Fmt.dias(ano,m);
+    const hoje=new Date();
+    const diasPassados=+ano===hoje.getFullYear()&&+m===hoje.getMonth()+1?hoje.getDate():diasN;
+    const primeiroDia=new Date(+ano,+m-1,1).getDay();
+    const p=pct(d.diasLimpos.size,diasPassados);
+    const cor=p>=90?'var(--gm)':p>=70?'var(--am)':'var(--rd)';
+
+    // Calendário mini do quarto
+    let calH=`<div style="margin-bottom:.7rem"><div style="font-size:.62rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem">Calendário do mês</div>`;
+    calH+=`<div class="cal-labels">${['D','S','T','Q','Q','S','S'].map(x=>`<div class="cal-label">${x}</div>`).join('')}</div>`;
+    calH+=`<div class="qdet-cal">`;
+    for(let i=0;i<primeiroDia;i++)calH+=`<div class="qdet-day qdet-vaz"></div>`;
+    for(let day=1;day<=diasN;day++){
+      let cls=day>diasPassados?'qdet-fut':d.diasLimpos.has(day)?'qdet-ok':'qdet-no';
+      calH+=`<div class="qdet-day ${cls}">${day}</div>`;
+    }
+    calH+=`</div></div>`;
+
+    // Tarefas com taxa de conformidade
+    const porTarefaQ=TAREFAS.map((nome,i)=>{let ok=0,nao=0,na=0;d.regs.forEach(r=>{const v=r.tarefas?.[i];if(v==='ok')ok++;else if(v==='nao')nao++;else if(v==='na')na++;});return{nome,ok,nao,na,total:ok+nao}});
+    let tarH=`<div style="font-size:.62rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem">Tarefas no período</div>`;
+    porTarefaQ.forEach(t=>{
+      const tp=t.total?pct(t.ok,t.total):null;
+      const [ic,cl]=tp===null?['—','tna']:tp>=80?['✓','tok']:['✗','tno'];
+      tarH+=`<div class="tar-mini"><div class="tic ${cl}">${ic}</div><span style="flex:1">${esc(t.nome)}</span><span style="font-size:.68rem;color:var(--mu);font-family:DM Mono,monospace">${tp!==null?tp+'%':'N/A'}</span></div>`;
+    });
+
+    // Colaboradores que passaram por aqui
+    const colsQ={};
+    d.regs.forEach(r=>{const n=r.funcionario||'?';colsQ[n]=(colsQ[n]||0)+1});
+    const colsArr=Object.entries(colsQ).sort((a,b)=>b[1]-a[1]);
+    let colH=colsArr.length?`<div style="font-size:.62rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin:.8rem 0 .35rem">Funcionários</div>`+colsArr.map(([n,cnt])=>`<div style="font-size:.78rem;display:flex;justify-content:space-between;padding:.22rem 0;border-bottom:1px solid var(--bd)"><span>${esc(n)}</span><span style="color:var(--mu)">${cnt} reg.</span></div>`).join(''):'';
+
+    // Obs registradas
+    const obsArr=d.regs.filter(r=>r.observacoes).map(r=>{const dt=r.timestamp?.toDate?.();return{dt,obs:r.observacoes}});
+    let obsH=obsArr.length?`<div style="font-size:.62rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin:.8rem 0 .35rem">Ocorrências registradas</div>`+obsArr.slice(0,5).map(o=>`<div style="background:var(--bg);border-radius:6px;padding:.45rem .65rem;font-size:.75rem;margin-bottom:.35rem;line-height:1.55"><span style="color:var(--mu);font-size:.65rem">${o.dt?Fmt.data(o.dt):''} · </span>${esc(o.obs)}</div>`).join(''):'';
+
+    document.getElementById('qdet-ttl').textContent=`${d.nome} — ${Fmt.mesNome(ano,m)}`;
+    document.getElementById('qdet-body').innerHTML=`
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:.9rem;padding:.7rem;background:var(--bg);border-radius:8px">
+        <div><div style="font-size:1.6rem;font-weight:700;font-family:DM Mono,monospace;color:${cor}">${p}%</div><div style="font-size:.68rem;color:var(--mu)">cobertura</div></div>
+        <div style="flex:1"><div style="height:8px;border-radius:4px;background:var(--bd);overflow:hidden"><div style="height:100%;border-radius:4px;background:${cor};width:${p}%"></div></div></div>
+        <div style="text-align:right"><div style="font-size:.82rem;font-weight:600">${d.diasLimpos.size} / ${diasPassados}</div><div style="font-size:.67rem;color:var(--mu)">dias registrados</div></div>
+      </div>
+      ${calH}${tarH}${colH}${obsH}`;
+    M.o('m-qdet');
+  },
+
   async gerar(){
-    const ambId=document.getElementById('rel-a').value;
     const mes=document.getElementById('rel-m').value;
     if(!mes){Ntf.show('Selecione o mês','err');return}
     Ntf.show('Carregando dados...','info');
-    const ambs=ambId?S.ambs.filter(a=>a.id===ambId):S.ambs;
-    const ambFiltradoNome=ambId&&ambs.length?` — ${ambs[0].nome}`:'';
+    const ambs=S.ambs;
     const[ano,m]=mes.split('-');
-    const nomeMes=Fmt.mesNome(ano,m)+ambFiltradoNome;
+    const nomeMes=Fmt.mesNome(ano,m);
     const diasN=Fmt.dias(ano,m);
     const hoje=new Date();
     const diasPassados=+ano===hoje.getFullYear()&&+m===hoje.getMonth()+1?hoje.getDate():diasN;
 
     // Buscar todos os registros do mês
-    let q=db.collection('registros');
-    if(ambId)q=q.where('ambienteId','==',ambId);
     const ini=new Date(+ano,+m-1,1),fim=new Date(+ano,+m,0,23,59,59);
-    q=q.where('timestamp','>=',ini).where('timestamp','<=',fim);
-    const snap=await q.get();
+    const snap=await db.collection('registros').where('timestamp','>=',ini).where('timestamp','<=',fim).get();
     const regs=snap.docs.map(d=>({id:d.id,...d.data()}));
 
     // ── MÉTRICAS GERAIS ──
@@ -741,10 +861,8 @@ const Rel={
     const totalFeitos=regs.length;
     const confGeral=pct(totalFeitos,totalEsperado);
 
-    // tarefas
-    let totalTarefasOk=0,totalTarefasNao=0,totalTarefasNA=0;
-    regs.forEach(r=>{if(!r.tarefas)return;r.tarefas.forEach(v=>{if(v==='ok')totalTarefasOk++;else if(v==='na')totalTarefasNA++;else totalTarefasNao++;})});
-    const totalTarefas=totalTarefasOk+totalTarefasNao+totalTarefasNA;
+    let totalTarefasOk=0,totalTarefasNao=0;
+    regs.forEach(r=>{if(!r.tarefas)return;r.tarefas.forEach(v=>{if(v==='ok')totalTarefasOk++;else if(v==='nao')totalTarefasNao++;})});
     const confTarefa=pct(totalTarefasOk,totalTarefasOk+totalTarefasNao);
 
     // ── ANÁLISE POR COLABORADOR ──
@@ -752,8 +870,7 @@ const Rel={
     regs.forEach(r=>{
       const n=r.funcionario||'Desconhecido';
       if(!porColab[n])porColab[n]={nome:n,registros:0,tarefasOk:0,tarefasNao:0,ambientes:new Set(),dias:new Set(),obs:0};
-      porColab[n].registros++;
-      porColab[n].ambientes.add(r.ambienteId);
+      porColab[n].registros++;porColab[n].ambientes.add(r.ambienteId);
       const dt=r.timestamp?.toDate?.();if(dt)porColab[n].dias.add(dt.getDate());
       if(r.observacoes)porColab[n].obs++;
       (r.tarefas||[]).forEach(v=>{if(v==='ok')porColab[n].tarefasOk++;else if(v==='nao')porColab[n].tarefasNao++;});
@@ -763,91 +880,95 @@ const Rel={
     // ── ANÁLISE POR TAREFA ──
     const porTarefa=TAREFAS.map((nome,i)=>{let ok=0,nao=0,na=0;regs.forEach(r=>{const v=r.tarefas?.[i];if(v==='ok')ok++;else if(v==='nao')nao++;else if(v==='na')na++;});return{nome,ok,nao,na,total:ok+nao}});
 
-    // ── ANÁLISE POR AMBIENTE ──
-    const porAmb={};
-    ambs.forEach(a=>{porAmb[a.id]={nome:a.nome,setor:a.setor||'—',diasLimpos:new Set(),diasPend:[],regs:[]}});
-    regs.forEach(r=>{if(porAmb[r.ambienteId]){const dt=r.timestamp?.toDate?.();if(dt){porAmb[r.ambienteId].diasLimpos.add(dt.getDate());porAmb[r.ambienteId].regs.push(r)}}});
+    // ── ANÁLISE POR QUARTO ──
+    this._quartoData={};
+    this._mesCtx=mes;
+    ambs.forEach(a=>{this._quartoData[a.id]={nome:a.nome,setor:a.setor||'—',diasLimpos:new Set(),regs:[]}});
+    regs.forEach(r=>{if(this._quartoData[r.ambienteId]){const dt=r.timestamp?.toDate?.();if(dt){this._quartoData[r.ambienteId].diasLimpos.add(dt.getDate());this._quartoData[r.ambienteId].regs.push(r)}}});
 
-    // ── CALENDÁRIO DE CONFORMIDADE (todos ambientes combinados) ──
+    // ordenar por cobertura (pior primeiro para destaque)
+    const quartosOrdenados=Object.entries(this._quartoData)
+      .map(([id,d])=>({id,...d,cobertura:pct(d.diasLimpos.size,diasPassados)}))
+      .sort((a,b)=>a.cobertura-b.cobertura);
+
+    // ── CALENDÁRIO GERAL ──
     const diasMap={};
-    for(let d=1;d<=diasPassados;d++){const regsDia=regs.filter(r=>{const dt=r.timestamp?.toDate?.();return dt&&dt.getDate()===d});const nAmbs=new Set(regsDia.map(r=>r.ambienteId)).size;diasMap[d]={total:regsDia.length,ambs:nAmbs,esperado:ambs.length}}
+    for(let d=1;d<=diasPassados;d++){const rd=regs.filter(r=>{const dt=r.timestamp?.toDate?.();return dt&&dt.getDate()===d});const nA=new Set(rd.map(r=>r.ambienteId)).size;diasMap[d]={ambs:nA,esperado:ambs.length}}
 
     // ── ALERTAS ──
     const alertas=[];
-    // Ambientes sem registro hoje
-    if(+ano===hoje.getFullYear()&&+m===hoje.getMonth()+1){const regHoje=regs.filter(r=>{const dt=r.timestamp?.toDate?.();return dt&&dt.getDate()===hoje.getDate()});const limpHoje=new Set(regHoje.map(r=>r.ambienteId));const pend=ambs.filter(a=>!limpHoje.has(a.id));if(pend.length)alertas.push({tipo:'alr',txt:`${pend.length} ambiente(s) sem registro hoje: ${pend.slice(0,3).map(a=>a.nome).join(', ')}${pend.length>3?'...':''}`})}
-    // Colaboradores com baixa conformidade
-    colabs.forEach(c=>{const pctC=pct(c.tarefasOk,c.tarefasOk+c.tarefasNao);if(c.registros>=3&&pctC<70)alertas.push({tipo:'ala',txt:`${c.nome} com conformidade baixa de tarefas: ${pctC}% (${c.registros} registros)`})});
-    // Tarefas com mais falha
+    if(+ano===hoje.getFullYear()&&+m===hoje.getMonth()+1){const rh=regs.filter(r=>{const dt=r.timestamp?.toDate?.();return dt&&dt.getDate()===hoje.getDate()});const lh=new Set(rh.map(r=>r.ambienteId));const pend=ambs.filter(a=>!lh.has(a.id));if(pend.length)alertas.push({tipo:'alr',txt:`${pend.length} ambiente(s) sem registro hoje: ${pend.slice(0,3).map(a=>a.nome).join(', ')}${pend.length>3?'...':''}`})}
+    colabs.forEach(c=>{const pctC=pct(c.tarefasOk,c.tarefasOk+c.tarefasNao);if(c.registros>=3&&pctC<70)alertas.push({tipo:'ala',txt:`${c.nome} com conformidade baixa: ${pctC}% (${c.registros} registros)`})});
     porTarefa.filter(t=>t.total>0&&pct(t.ok,t.total)<60).forEach(t=>alertas.push({tipo:'ala',txt:`Tarefa "${t.nome}" com apenas ${pct(t.ok,t.total)}% de conformidade`}));
-    // Positivo
+    // Quartos com menos atenção
+    const quartoCriticos=quartosOrdenados.filter(q=>q.cobertura<70);
+    if(quartoCriticos.length)alertas.push({tipo:'alr',txt:`Ambientes com cobertura abaixo de 70%: ${quartoCriticos.map(q=>q.nome).join(', ')}`});
     if(confGeral>=90)alertas.push({tipo:'alg',txt:`Excelente! Conformidade geral de ${confGeral}% no período.`});
 
-    this.renderHTML(nomeMes,mes,confGeral,confTarefa,totalFeitos,totalEsperado,colabs,porTarefa,porAmb,diasMap,diasN,diasPassados,alertas,ambs.length);
+    this.renderHTML(nomeMes,mes,confGeral,confTarefa,totalFeitos,totalEsperado,colabs,porTarefa,diasMap,diasN,diasPassados,alertas,ambs.length,quartosOrdenados);
   },
 
-  renderHTML(nomeMes,mes,confGeral,confTarefa,totalFeitos,totalEsperado,colabs,porTarefa,porAmb,diasMap,diasN,diasPassados,alertas,nAmbs){
+  renderHTML(nomeMes,mes,confGeral,confTarefa,totalFeitos,totalEsperado,colabs,porTarefa,diasMap,diasN,diasPassados,alertas,nAmbs,quartosOrdenados){
     const[ano,m]=mes.split('-');
-    const primeiroDia=new Date(+ano,+m-1,1).getDay(); // 0=dom
-
-    // Cor da conformidade
+    const primeiroDia=new Date(+ano,+m-1,1).getDay();
     const cConf=confGeral>=90?'cvg':confGeral>=70?'cva':'cvr';
     const cConf2=confTarefa>=90?'cvg':confTarefa>=70?'cva':'cvr';
 
     // KPIs
     let kpisHTML=`
       <div class="kpi kg"><div class="kpi-lbl">Conformidade geral</div><div class="kpi-val ${cConf}">${confGeral}%</div><div class="kpi-sub">${totalFeitos} de ${totalEsperado} esperados</div></div>
-      <div class="kpi kb"><div class="kpi-lbl">Conformidade tarefas</div><div class="kpi-val ${cConf2}">${confTarefa}%</div><div class="kpi-sub">tarefas realizadas vs. esperadas</div></div>
-      <div class="kpi"><div class="kpi-lbl">Total de registros</div><div class="kpi-val">${totalFeitos}</div><div class="kpi-sub">no período</div></div>
-      <div class="kpi"><div class="kpi-lbl">Colaboradores</div><div class="kpi-val">${colabs.length}</div><div class="kpi-sub">ativos no período</div></div>`;
+      <div class="kpi kb"><div class="kpi-lbl">Conf. tarefas</div><div class="kpi-val ${cConf2}">${confTarefa}%</div><div class="kpi-sub">feitas vs. esperadas</div></div>
+      <div class="kpi"><div class="kpi-lbl">Total registros</div><div class="kpi-val">${totalFeitos}</div><div class="kpi-sub">no período</div></div>
+      <div class="kpi"><div class="kpi-lbl">Colaboradores</div><div class="kpi-val">${colabs.length}</div><div class="kpi-sub">ativos</div></div>`;
 
     // Alertas
     let alertHTML=alertas.length?alertas.map(a=>`<div class="alert-item ${a.tipo}"><span class="alert-icon">${a.tipo==='alr'?'⚠️':a.tipo==='ala'?'🔶':'✅'}</span><span>${esc(a.txt)}</span></div>`).join(''):`<div class="alert-item alg"><span class="alert-icon">✅</span><span>Nenhum alerta no período.</span></div>`;
 
-    // Calendário
-    let calHTML=`<div class="cal-labels">${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(d=>`<div class="cal-label">${d}</div>`).join('')}</div><div class="cal-grid">`;
+    // Calendário compacto
+    let calHTML=`<div class="cal-wrap"><div class="cal-labels">${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(d=>`<div class="cal-label">${d}</div>`).join('')}</div><div class="cal-grid">`;
     for(let i=0;i<primeiroDia;i++)calHTML+=`<div class="cal-day cd-vaz"></div>`;
-    for(let d=1;d<=diasN;d++){
-      const dm=diasMap[d];let cls='cd-fut';
-      if(dm){const p=pct(dm.ambs,dm.esperado);cls=p>=90?'cd-ok':p>=50?'cd-par':'cd-no'}
-      calHTML+=`<div class="cal-day ${cls}">${d}</div>`;
-    }
+    for(let d=1;d<=diasN;d++){const dm=diasMap[d];let cls='cd-fut';if(dm){const p=pct(dm.ambs,dm.esperado);cls=p>=90?'cd-ok':p>=50?'cd-par':'cd-no'}calHTML+=`<div class="cal-day ${cls}">${d}</div>`;}
     calHTML+='</div>';
-    calHTML+=`<div style="display:flex;gap:.85rem;margin-top:.6rem;font-size:.68rem;color:var(--mu);flex-wrap:wrap">
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--gx);margin-right:3px;vertical-align:middle"></span>≥90% limpos</span>
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--aml);margin-right:3px;vertical-align:middle"></span>50–89%</span>
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--rdl);margin-right:3px;vertical-align:middle"></span>&lt;50%</span>
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--bg);border:1px solid var(--bd);margin-right:3px;vertical-align:middle"></span>Futuro</span>
-    </div>`;
+    calHTML+=`<div style="display:flex;gap:.65rem;margin-top:.4rem;font-size:.6rem;color:var(--mu);flex-wrap:wrap">
+      <span><span style="display:inline-block;width:8px;height:8px;border-radius:1px;background:var(--gx);margin-right:2px;vertical-align:middle"></span>≥90%</span>
+      <span><span style="display:inline-block;width:8px;height:8px;border-radius:1px;background:var(--aml);margin-right:2px;vertical-align:middle"></span>50–89%</span>
+      <span><span style="display:inline-block;width:8px;height:8px;border-radius:1px;background:var(--rdl);margin-right:2px;vertical-align:middle"></span>&lt;50%</span>
+    </div></div>`;
 
     // Tabela tarefas
-    let tarHTML=`<table class="task-heat"><thead><tr><th>Tarefa</th><th>Feitas</th><th>Não feitas</th><th>N/A</th><th style="min-width:140px">Conformidade</th></tr></thead><tbody>`;
-    porTarefa.forEach(t=>{
-      const p=pct(t.ok,t.total);const cor=p>=90?'var(--gm)':p>=70?'var(--am)':'var(--rd)';
+    let tarHTML=`<table class="task-heat"><thead><tr><th>Tarefa</th><th>✓</th><th>✗</th><th>N/A</th><th style="min-width:120px">Conformidade</th></tr></thead><tbody>`;
+    porTarefa.forEach(t=>{const p=pct(t.ok,t.total);const cor=p>=90?'var(--gm)':p>=70?'var(--am)':'var(--rd)';
       tarHTML+=`<tr><td>${esc(t.nome)}</td><td style="color:var(--gm);font-weight:500">${t.ok}</td><td style="color:var(--rd)">${t.nao}</td><td style="color:var(--mu)">${t.na}</td>
         <td><div class="pct-bar-wrap"><div class="pct-bar"><div class="pct-fill" style="width:${p}%;background:${cor}"></div></div><span class="pct-lbl" style="color:${cor}">${p}%</span></div></td></tr>`;
     });
     tarHTML+='</tbody></table>';
 
     // Tabela colaboradores
-    let colHTML=`<table class="colab-table"><thead><tr><th>Colaborador</th><th>Registros</th><th>Dias ativos</th><th>Ambientes</th><th>Ocorrências</th><th>% Tarefas</th><th>Desempenho</th></tr></thead><tbody>`;
-    colabs.forEach(c=>{
-      const p=pct(c.tarefasOk,c.tarefasOk+c.tarefasNao);
-      const pill=p>=90?'pill-g':p>=70?'pill-a':'pill-r';
-      const label=p>=90?'Ótimo':p>=70?'Regular':'Atenção';
+    let colHTML=`<table class="colab-table"><thead><tr><th>Colaborador</th><th>Reg.</th><th>Dias</th><th>Ambientes</th><th>Ocorr.</th><th>% Tarefas</th><th>Status</th></tr></thead><tbody>`;
+    colabs.forEach(c=>{const p=pct(c.tarefasOk,c.tarefasOk+c.tarefasNao);const pill=p>=90?'pill-g':p>=70?'pill-a':'pill-r';const label=p>=90?'Ótimo':p>=70?'Regular':'Atenção';
       colHTML+=`<tr><td><b>${esc(c.nome)}</b></td><td style="font-family:'DM Mono',monospace">${c.registros}</td><td>${c.dias.size}</td><td>${c.ambientes.size}</td><td>${c.obs}</td><td style="font-family:'DM Mono',monospace">${p}%</td><td><span class="pill ${pill}">${label}</span></td></tr>`;
     });
     if(!colabs.length)colHTML+=`<tr><td colspan="7" style="text-align:center;color:var(--mu);padding:1.25rem">Nenhum registro no período</td></tr>`;
     colHTML+='</tbody></table>';
 
-    // Tabela por ambiente
-    let ambHTML=`<table class="task-heat"><thead><tr><th>Ambiente</th><th>Setor</th><th>Dias registrados</th><th>% Cobertura</th></tr></thead><tbody>`;
-    Object.values(porAmb).forEach(a=>{
-      const p=pct(a.diasLimpos.size,diasPassados);const cor=p>=90?'var(--gm)':p>=70?'var(--am)':'var(--rd)';
-      ambHTML+=`<tr><td><b>${esc(a.nome)}</b></td><td style="color:var(--mu)">${esc(a.setor)}</td><td>${a.diasLimpos.size} / ${diasPassados}</td>
-        <td><div class="pct-bar-wrap"><div class="pct-bar"><div class="pct-fill" style="width:${p}%;background:${cor}"></div></div><span class="pct-lbl" style="color:${cor}">${p}%</span></div></td></tr>`;
+    // Cards por quarto (ordenados do pior para o melhor)
+    let quartosHTML='<div class="quarto-grid">';
+    quartosOrdenados.forEach(q=>{
+      const cor=q.cobertura>=90?'var(--gm)':q.cobertura>=70?'var(--am)':'var(--rd)';
+      const cls=q.cobertura>=90?'qc-ok':q.cobertura>=70?'qc-med':'qc-low';
+      const badge=q.cobertura<70?`<span class="quarto-atencao qa-alerta">⚠ Atenção</span>`:q.cobertura<90?`<span class="quarto-atencao qa-med">Regular</span>`:`<span class="quarto-atencao qa-ok">✓ Ótimo</span>`;
+      quartosHTML+=`<div class="quarto-card ${cls} rel-print-hide" onclick="Rel.abrirQuarto('${q.id}')">
+        ${badge}
+        <h4>${esc(q.nome)}</h4>
+        <div class="qsetor">${esc(q.setor)}</div>
+        <div class="qpct" style="color:${cor}">${q.cobertura}%</div>
+        <div class="qsub">${q.diasLimpos.size} de ${diasPassados} dias registrados</div>
+        <div class="qbar"><div class="qbar-fill" style="width:${q.cobertura}%;background:${cor}"></div></div>
+        <div style="font-size:.65rem;color:var(--mu)">${q.regs.length} registro(s) · clique para detalhar</div>
+      </div>`;
     });
-    ambHTML+='</tbody></table>';
+    // versão impressão (sem onclick, todos visíveis)
+    quartosHTML+='</div>';
 
     document.getElementById('rel-output').innerHTML=`
     <div class="rel-container">
@@ -874,6 +995,12 @@ const Rel={
       </div>
 
       <div class="rel-section">
+        <h3>Situação por quarto / ambiente</h3>
+        <p style="font-size:.72rem;color:var(--mu);margin-bottom:.75rem" class="rel-print-hide">Ordenado do que precisa de mais atenção para o melhor. Clique para detalhar.</p>
+        ${quartosHTML}
+      </div>
+
+      <div class="rel-section">
         <h3>Desempenho por tarefa</h3>
         ${tarHTML}
       </div>
@@ -882,15 +1009,100 @@ const Rel={
         <h3>Desempenho por colaborador</h3>
         ${colHTML}
       </div>
+    </div>`;
+// ══════════════════════════════════════════════════════════
+// RELATÓRIO POR QUARTO
+// ══════════════════════════════════════════════════════════
+const QRel={
+  init(){
+    const s=document.getElementById('qrel-amb');
+    s.innerHTML='<option value="">— Selecione o ambiente —</option>';
+    S.ambs.forEach(a=>s.innerHTML+=`<option value="${a.id}">${esc(a.nome)}${a.setor?' — '+esc(a.setor):''}</option>`);
+    if(!document.getElementById('qrel-m').value)document.getElementById('qrel-m').value=new Date().toISOString().slice(0,7);
+    document.getElementById('qrel-output').innerHTML='';
+  },
+  imprimir(){
+    const out=document.getElementById('qrel-output');
+    if(!out.innerHTML.trim()){Ntf.show('Gere o relatório antes de imprimir','err');return}
+    const printDiv=document.getElementById('print-only-rel');
+    printDiv.innerHTML=out.innerHTML;
+    printDiv.style.display='block';
+    window.print();
+    setTimeout(()=>{printDiv.style.display='none';printDiv.innerHTML=''},600);
+  },
+  async gerar(){
+    const ambId=document.getElementById('qrel-amb').value;
+    const mes=document.getElementById('qrel-m').value;
+    if(!ambId){Ntf.show('Selecione um ambiente','err');return}
+    if(!mes){Ntf.show('Selecione o mês','err');return}
+    const amb=S.ambs.find(a=>a.id===ambId);if(!amb)return;
+    Ntf.show('Carregando...','info');
+    const[ano,m]=mes.split('-');
+    const nomeMes=Fmt.mesNome(ano,m);
+    const diasN=Fmt.dias(ano,m);
+    const hoje=new Date();
+    const diasPassados=+ano===hoje.getFullYear()&&+m===hoje.getMonth()+1?hoje.getDate():diasN;
+    const primeiroDia=new Date(+ano,+m-1,1).getDay();
+    const ini=new Date(+ano,+m-1,1),fim=new Date(+ano,+m,0,23,59,59);
+    const snap=await db.collection('registros').where('ambienteId','==',ambId).where('timestamp','>=',ini).where('timestamp','<=',fim).orderBy('timestamp','asc').get();
+    const regs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const diasLimpos=new Set();
+    regs.forEach(r=>{const dt=r.timestamp?.toDate?.();if(dt)diasLimpos.add(dt.getDate())});
+    const cobertura=pct(diasLimpos.size,diasPassados);
+    const cor=cobertura>=90?'#2d6a4f':cobertura>=70?'#b45309':'#b91c1c';
+    const porTarefa=TAREFAS.map((nome,i)=>{let ok=0,nao=0,na=0;regs.forEach(r=>{const v=r.tarefas?.[i];if(v==='ok')ok++;else if(v==='nao')nao++;else if(v==='na')na++;});return{nome,ok,nao,na,total:ok+nao}});
+    const colsQ={};regs.forEach(r=>{const n=r.funcionario||'?';colsQ[n]=(colsQ[n]||0)+1});
+    const colsArr=Object.entries(colsQ).sort((a,b)=>b[1]-a[1]);
+    const obsArr=regs.filter(r=>r.observacoes).map(r=>({dt:r.timestamp?.toDate?.(),obs:r.observacoes}));
 
-      <div class="rel-section">
-        <h3>Cobertura por ambiente</h3>
-        ${ambHTML}
+    let calH=`<div class="cal-wrap"><div class="cal-labels">${['D','S','T','Q','Q','S','S'].map(x=>`<div class="cal-label">${x}</div>`).join('')}</div><div class="cal-grid">`;
+    for(let i=0;i<primeiroDia;i++)calH+=`<div class="cal-day cd-vaz"></div>`;
+    for(let d=1;d<=diasN;d++){let cls=d>diasPassados?'cd-fut':diasLimpos.has(d)?'cd-ok':'cd-no';calH+=`<div class="cal-day ${cls}">${d}</div>`}
+    calH+=`</div><div style="display:flex;gap:.55rem;margin-top:.3rem;font-size:.55rem;color:#6b7280;flex-wrap:wrap"><span><span style="display:inline-block;width:7px;height:7px;border-radius:1px;background:#d8f3dc;margin-right:2px;vertical-align:middle"></span>Registrado</span><span><span style="display:inline-block;width:7px;height:7px;border-radius:1px;background:#fee2e2;margin-right:2px;vertical-align:middle"></span>Sem reg.</span></div></div>`;
+
+    let tarH=`<table class="task-heat"><thead><tr><th>Tarefa</th><th>✓</th><th>✗</th><th>N/A</th><th>Conf.</th></tr></thead><tbody>`;
+    porTarefa.forEach(t=>{const p=t.total?pct(t.ok,t.total):null;const c=p===null?'#9ca3af':p>=90?'#2d6a4f':p>=70?'#b45309':'#b91c1c';
+      tarH+=`<tr><td>${esc(t.nome)}</td><td style="color:#2d6a4f;font-weight:500">${t.ok}</td><td style="color:#b91c1c">${t.nao}</td><td style="color:#9ca3af">${t.na}</td><td><div class="pct-bar-wrap"><div class="pct-bar"><div class="pct-fill" style="width:${p||0}%;background:${c}"></div></div><span class="pct-lbl" style="color:${c}">${p!==null?p+'%':'—'}</span></div></td></tr>`;
+    });tarH+='</tbody></table>';
+
+    let colH=colsArr.length?colsArr.map(([n,cnt])=>`<div style="display:flex;justify-content:space-between;font-size:.78rem;padding:.28rem 0;border-bottom:1px solid var(--bd)"><span>${esc(n)}</span><span style="color:var(--mu);font-family:DM Mono,monospace">${cnt} reg.</span></div>`).join(''):'<span style="font-size:.78rem;color:var(--mu)">Nenhum</span>';
+
+    let regsH='';
+    [...regs].reverse().forEach(r=>{const dt=r.timestamp?.toDate?.();const okN=r.tarefas?r.tarefas.filter(v=>v==='ok').length:0;const p2=pct(okN,TAREFAS.length);const c2=p2>=90?'#2d6a4f':p2>=70?'#b45309':'#b91c1c';
+      regsH+=`<div style="display:flex;align-items:center;gap:.6rem;padding:.38rem 0;border-bottom:1px solid var(--bd);font-size:.75rem"><div style="font-family:DM Mono,monospace;font-size:.65rem;color:var(--mu);min-width:80px">${dt?Fmt.dh(dt):'—'}</div><div style="flex:1">${esc(r.funcionario||'—')}</div><div style="font-weight:600;color:${c2}">${p2}%</div></div>`;
+    });
+    if(!regsH)regsH='<p style="font-size:.78rem;color:var(--mu);padding:.5rem 0">Nenhum registro.</p>';
+
+    let obsH=obsArr.length?obsArr.map(o=>`<div style="background:var(--bg);border-radius:6px;padding:.45rem .65rem;margin-bottom:.3rem;font-size:.75rem;line-height:1.5"><span style="color:var(--mu);font-size:.63rem;display:block;margin-bottom:.1rem">${o.dt?Fmt.dh(o.dt):''}</span>${esc(o.obs)}</div>`).join(''):'<span style="font-size:.78rem;color:var(--mu)">Nenhuma ocorrência.</span>';
+
+    document.getElementById('qrel-output').innerHTML=`
+    <div class="rel-container">
+      <div class="rel-header">
+        <div>
+          <h2>${esc(amb.nome)}${amb.setor?' · '+esc(amb.setor):''}</h2>
+          <p>Relatório mensal · ${esc(nomeMes)} · ILPI · Gerado em ${new Date().toLocaleString('pt-BR')}</p>
+        </div>
+        <div class="rel-header-right">
+          <button class="btn bbl2 bsm rel-print-hide" onclick="QRel.imprimir()">🖨️ Imprimir</button>
+        </div>
       </div>
+      <div class="rel-kpis">
+        <div class="kpi ${cobertura>=90?'kg':cobertura>=70?'ka':''}"><div class="kpi-lbl">Cobertura</div><div class="kpi-val" style="color:${cor}">${cobertura}%</div><div class="kpi-sub">${diasLimpos.size} de ${diasPassados} dias</div></div>
+        <div class="kpi"><div class="kpi-lbl">Registros</div><div class="kpi-val">${regs.length}</div><div class="kpi-sub">no mês</div></div>
+        <div class="kpi"><div class="kpi-lbl">Funcionários</div><div class="kpi-val">${colsArr.length}</div><div class="kpi-sub">distintos</div></div>
+        <div class="kpi ${obsArr.length?'ka':''}"><div class="kpi-lbl">Ocorrências</div><div class="kpi-val ${obsArr.length?'cva':''}">${obsArr.length}</div><div class="kpi-sub">registradas</div></div>
+      </div>
+      <div class="rel-section"><h3>Calendário do mês</h3>${calH}</div>
+      <div class="rel-section"><h3>Conformidade por tarefa</h3>${tarH}</div>
+      <div class="rel-section" style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;flex-wrap:wrap">
+        <div><h3>Funcionários</h3><div style="margin-top:.55rem">${colH}</div></div>
+        <div><h3>Todos os registros</h3><div style="margin-top:.55rem;max-height:240px;overflow-y:auto">${regsH}</div></div>
+      </div>
+      ${obsArr.length?`<div class="rel-section"><h3>Ocorrências</h3><div style="margin-top:.5rem">${obsH}</div></div>`:''}
     </div>`;
     Ntf.show('Relatório gerado!','ok');
   }
 };
-</script>
+
 </body>
 </html>
