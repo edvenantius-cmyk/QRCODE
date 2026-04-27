@@ -690,7 +690,7 @@ const Ambs={
 
 // ── QR ──
 const QRM={cur:null,ver(id){const a=S.ambs.find(x=>x.id===id);if(!a)return;this.cur=a;document.getElementById('qr-ttl').textContent=a.nome;document.getElementById('qr-sub').textContent=a.setor||'';document.getElementById('qr-disp').innerHTML='';new QRCode(document.getElementById('qr-disp'),{text:JSON.stringify({ambienteId:a.id,nome:a.nome,setor:a.setor||''}),width:200,height:200,correctLevel:QRCode.CorrectLevel.H});M.o('m-qr')},
-print(){const a=this.cur;if(!a)return;const qd=document.getElementById('qr-disp');const img=qd.querySelector('img')||qd.querySelector('canvas');let src='';if(img instanceof HTMLCanvasElement)src=img.toDataURL();else if(img)src=img.src;const w=window.open('','_blank');w.document.write(`<!DOCTYPE html><html><head><title>QR — ${esc(a.nome)}</title><style>body{font-family:Arial,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}.c{border:2px solid #2d6a4f;border-radius:12px;padding:1.75rem 2.25rem;text-align:center}h2{color:#1b4332;font-size:1.15rem;margin:0 0 .15rem}p{color:#6b7280;font-size:.78rem;margin:0 0 1rem}img{width:200px;height:200px;display:block;margin:0 auto}.ft{margin-top:.65rem;font-size:.63rem;color:#9ca3af}</style></head><body><div class="c"><h2>${esc(a.nome)}</h2><p>${esc(a.setor||'')}</p><img src="${src}"><div class="ft">LimpaCheck — ILPI</div></div><script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script></body></html>`);w.document.close()}};
+print(){const a=this.cur;if(!a)return;const qd=document.getElementById('qr-disp');const img=qd.querySelector('img')||qd.querySelector('canvas');let src='';if(img instanceof HTMLCanvasElement)src=img.toDataURL();else if(img)src=img.src;const sc='scr'+'ipt';const w=window.open('','_blank');w.document.write('<!DOCTYPE html><html><head><title>QR \u2014 '+esc(a.nome)+'</title><style>body{font-family:Arial,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}.c{border:2px solid #2d6a4f;border-radius:12px;padding:1.75rem 2.25rem;text-align:center}h2{color:#1b4332;font-size:1.15rem;margin:0 0 .15rem}p{color:#6b7280;font-size:.78rem;margin:0 0 1rem}img{width:200px;height:200px;display:block;margin:0 auto}.ft{margin-top:.65rem;font-size:.63rem;color:#9ca3af}</style></head><body><div class="c"><h2>'+esc(a.nome)+'</h2><p>'+esc(a.setor||'')+'</p><img src="'+src+'"><div class="ft">LimpaCheck \u2014 ILPI</div></div><'+sc+'>window.onload=()=>setTimeout(()=>window.print(),300)<\/'+sc+'></body></html>');w.document.close()}};
 
 // ── MODALS ──
 const M={o(id){document.getElementById(id).classList.add('on')},c(id){document.getElementById(id).classList.remove('on')}};
@@ -1010,6 +1010,10 @@ const Rel={
         ${colHTML}
       </div>
     </div>`;
+    Ntf.show('Relatório gerado!','ok');
+  }
+};
+
 // ══════════════════════════════════════════════════════════
 // RELATÓRIO POR QUARTO
 // ══════════════════════════════════════════════════════════
@@ -1103,6 +1107,6 @@ const QRel={
     Ntf.show('Relatório gerado!','ok');
   }
 };
-
+</script>
 </body>
 </html>
