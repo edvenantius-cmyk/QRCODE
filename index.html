@@ -338,7 +338,9 @@ tbody tr:hover td{background:var(--bg)}
     <div id="tab-regs" style="display:none">
       <div class="frow">
         <select id="filt-a" onchange="Regs.render()"><option value="">Todos os ambientes</option></select>
-        <input type="month" id="filt-m" onchange="Regs.render()">
+        <input type="month" id="filt-m" onchange="Regs.onMesChange()">
+        <input type="date" id="filt-d" onchange="Regs.render()" placeholder="Dia específico">
+        <button class="btn bg bsm" onclick="Regs.clearDate()">✕ Dia</button>
       </div>
       <div class="twrap">
         <table>
@@ -551,14 +553,48 @@ const Tabs={show(t,btn){['dash','regs','ambs','rel','quarto'].forEach(x=>documen
 const DB={
   async loadAmbs(){const s=await db.collection('ambientes').orderBy('nome').get();S.ambs=s.docs.map(d=>({id:d.id,...d.data()}))},
   async regsDia(dt){const i=new Date(dt+'T00:00:00'),f=new Date(dt+'T23:59:59');const s=await db.collection('registros').where('timestamp','>=',i).where('timestamp','<=',f).get();return s.docs.map(d=>({id:d.id,...d.data()}))},
-  async regsMes(ambId,mes){let q=db.collection('registros');if(ambId)q=q.where('ambienteId','==',ambId);const[a,m]=mes.split('-');const i=new Date(+a,+m-1,1),f=new Date(+a,+m,0,23,59,59);q=q.where('timestamp','>=',i).where('timestamp','<=',f);const s=await q.orderBy('timestamp','desc').get();return s.docs.map(d=>({id:d.id,...d.data()}))},
+  async regsMes(mes){const[a,m]=mes.split('-');const i=new Date(+a,+m-1,1),f=new Date(+a,+m,0,23,59,59);const s=await db.collection('registros').where('timestamp','>=',i).where('timestamp','<=',f).orderBy('timestamp','desc').get();return s.docs.map(d=>({id:d.id,...d.data()}))},
   async save(d){return db.collection('registros').add(d)}
 };
 
 // ── ADM INIT ──
 const ADM={async init(){await DB.loadAmbs();Dash.init();Regs.filters();Rel.init()}};
 
-// ── DASHBOARD ──
+// ── REGISTROS ──
+const Regs={
+  filters(){
+    const s=document.getElementById('filt-a');s.innerHTML='<option value="">Todos os ambientes</option>';
+    S.ambs.forEach(a=>s.innerHTML+=`<option value="${a.id}">${esc(a.nome)}</option>`);
+    document.getElementById('filt-m').value=new Date().toISOString().slice(0,7);
+    document.getElementById('filt-d').value='';
+    this.render();
+  },
+  onMesChange(){document.getElementById('filt-d').value='';this.render()},
+  clearDate(){document.getElementById('filt-d').value='';this.render()},
+  async render(){
+    const ambId=document.getElementById('filt-a').value;
+    const mes=document.getElementById('filt-m').value;
+    const dia=document.getElementById('filt-d').value;
+    if(!mes&&!dia)return;
+    let regs=dia?await DB.regsDia(dia):await DB.regsMes(mes);
+    if(ambId)regs=regs.filter(r=>r.ambienteId===ambId);
+    regs.sort((a,b)=>(b.timestamp?.toDate?.()?.getTime()||0)-(a.timestamp?.toDate?.()?.getTime()||0));
+    const tb=document.getElementById('regs-body');tb.innerHTML='';
+    if(!regs.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--mu);padding:1.5rem">Nenhum registro</td></tr>';return}
+    regs.forEach(r=>{
+      const a=S.ambs.find(x=>x.id===r.ambienteId);
+      const ok=r.tarefas?r.tarefas.filter(v=>v==='ok').length:0;
+      tb.innerHTML+=`<tr onclick="Det.reg('${r.id}')">
+        <td style="font-family:'DM Mono',monospace;font-size:.72rem">${Fmt.dh(r.timestamp?.toDate?.())}</td>
+        <td class="tl"><b>${esc(a?.nome||r.ambienteNome||'—')}</b></td>
+        <td style="color:var(--mu)">${esc(a?.setor||r.ambienteSetor||'—')}</td>
+        <td>${esc(r.funcionario||'—')}</td>
+        <td style="color:var(--gm);font-weight:500">${ok}/${TAREFAS.length}</td>
+        <td style="color:var(--mu);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.observacoes||'—')}</td>
+      </tr>`;
+    });
+  }
+};
 const Dash={
   init(){document.getElementById('dash-dt').value=new Date().toISOString().slice(0,10);this.render()},
   hoje(){document.getElementById('dash-dt').value=new Date().toISOString().slice(0,10);this.render()},
@@ -593,34 +629,6 @@ const Dash={
     Ntf.show('Salvando...','info');
     await Promise.all(S.ambs.map(a=>DB.save({ambienteId:a.id,ambienteNome:a.nome,ambienteSetor:a.setor||'',funcionario:nome,tarefas:TAREFAS.map(()=>'ok'),observacoes:'Fechamento em lote.',timestamp:new Date(dt+'T12:00:00')})));
     Ntf.show('Todos fechados!','ok');this.render();
-  }
-};
-
-// ── REGISTROS ──
-const Regs={
-  filters(){
-    const s=document.getElementById('filt-a');s.innerHTML='<option value="">Todos os ambientes</option>';
-    S.ambs.forEach(a=>s.innerHTML+=`<option value="${a.id}">${esc(a.nome)}</option>`);
-    document.getElementById('filt-m').value=new Date().toISOString().slice(0,7);this.render();
-  },
-  async render(){
-    const ambId=document.getElementById('filt-a').value,mes=document.getElementById('filt-m').value;
-    if(!mes)return;
-    const regs=await DB.regsMes(ambId,mes);
-    const tb=document.getElementById('regs-body');tb.innerHTML='';
-    if(!regs.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--mu);padding:1.5rem">Nenhum registro</td></tr>';return}
-    regs.forEach(r=>{
-      const a=S.ambs.find(x=>x.id===r.ambienteId);
-      const ok=r.tarefas?r.tarefas.filter(v=>v==='ok').length:0;
-      tb.innerHTML+=`<tr onclick="Det.reg('${r.id}')">
-        <td style="font-family:'DM Mono',monospace;font-size:.72rem">${Fmt.dh(r.timestamp?.toDate?.())}</td>
-        <td class="tl"><b>${esc(a?.nome||r.ambienteNome||'—')}</b></td>
-        <td style="color:var(--mu)">${esc(a?.setor||r.ambienteSetor||'—')}</td>
-        <td>${esc(r.funcionario||'—')}</td>
-        <td style="color:var(--gm);font-weight:500">${ok}/${TAREFAS.length}</td>
-        <td style="color:var(--mu);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.observacoes||'—')}</td>
-      </tr>`;
-    });
   }
 };
 
@@ -1048,8 +1056,8 @@ const QRel={
     const diasPassados=+ano===hoje.getFullYear()&&+m===hoje.getMonth()+1?hoje.getDate():diasN;
     const primeiroDia=new Date(+ano,+m-1,1).getDay();
     const ini=new Date(+ano,+m-1,1),fim=new Date(+ano,+m,0,23,59,59);
-    const snap=await db.collection('registros').where('ambienteId','==',ambId).where('timestamp','>=',ini).where('timestamp','<=',fim).orderBy('timestamp','asc').get();
-    const regs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const snap=await db.collection('registros').where('timestamp','>=',ini).where('timestamp','<=',fim).orderBy('timestamp','asc').get();
+    const regs=snap.docs.map(d=>({id:d.id,...d.data()})).filter(r=>r.ambienteId===ambId);
     const diasLimpos=new Set();
     regs.forEach(r=>{const dt=r.timestamp?.toDate?.();if(dt)diasLimpos.add(dt.getDate())});
     const cobertura=pct(diasLimpos.size,diasPassados);
